@@ -116,6 +116,48 @@ export type LeadPayload = {
   notes?: string
 }
 
+export type TaskRecord = {
+  id: string
+  title: string
+  description?: string | null
+  status?: string
+  priority?: string
+  dueDate?: string | null
+  category?: string | null
+  relatedEntityType?: string | null
+  relatedEntityId?: string | null
+  ownerId?: string
+  owner?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  assignedTo?: string | null
+  assignedUser?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  reminderSent?: boolean
+  metadata?: Record<string, unknown> | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type TaskPayload = {
+  title: string
+  description?: string
+  status?: string
+  priority?: string
+  dueDate?: string
+  category?: string
+  assignedTo?: string
+  relatedEntityType?: string
+  relatedEntityId?: string
+}
+
 const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 ).replace(/\/$/, '')
@@ -209,7 +251,28 @@ export const api = {
     })
   },
   getTasks(token: string, page = 1, limit = 20) {
-    return request<PaginatedResponse<any>>(`/tasks?page=${page}&limit=${limit}`, {
+    return request<PaginatedResponse<TaskRecord>>(`/tasks?page=${page}&limit=${limit}`, {
+      token,
+    })
+  },
+  createTask(token: string, payload: TaskPayload) {
+    return request<TaskRecord>('/tasks', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateTask(token: string, taskId: string, payload: Partial<TaskPayload>) {
+    return request<TaskRecord>(`/tasks/${taskId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  updateTaskStatus(token: string, taskId: string, status: string) {
+    return request<TaskRecord>(`/tasks/${taskId}/status`, {
+      method: 'PUT',
+      body: { status },
       token,
     })
   },

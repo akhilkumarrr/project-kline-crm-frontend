@@ -2,9 +2,9 @@ import {
   appointmentRows,
   invoiceRows,
   onboardingRows,
-  taskRows,
   ticketRows,
 } from '../data/crm-data'
+import { TasksWorkspace } from '../components/tasks/TasksWorkspace'
 import { LoadState } from '../components/LoadState'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { useAuth } from '../hooks/useAuth'
@@ -19,7 +19,7 @@ const operationsMap = {
     eyebrow: 'Execution',
     title: 'Task command center',
     pill: '14 due today',
-    rows: taskRows,
+    rows: [],
   },
   calendar: {
     eyebrow: 'Scheduling',
@@ -48,6 +48,10 @@ const operationsMap = {
 } as const
 
 export function OperationsPage({ activeView }: OperationsPageProps) {
+  if (activeView === 'tasks') {
+    return <TasksWorkspace />
+  }
+
   const config = operationsMap[activeView as keyof typeof operationsMap] ?? operationsMap.tasks
   const { token } = useAuth()
 
