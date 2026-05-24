@@ -81,6 +81,41 @@ export type ContactPayload = {
   notes?: string
 }
 
+export type LeadRecord = {
+  id: string
+  title: string
+  description?: string | null
+  contactId: string
+  contact?: ContactRecord | null
+  stage?: string
+  source?: string
+  value?: number | string | null
+  probability?: string | null
+  expectedCloseDate?: string | null
+  ownerId?: string
+  owner?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  notes?: string | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type LeadPayload = {
+  title: string
+  description?: string
+  contactId: string
+  stage?: string
+  source?: string
+  value?: number
+  probability?: string
+  expectedCloseDate?: string
+  notes?: string
+}
+
 const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 ).replace(/\/$/, '')
@@ -155,7 +190,21 @@ export const api = {
     })
   },
   getLeads(token: string, page = 1, limit = 20) {
-    return request<PaginatedResponse<any>>(`/leads?page=${page}&limit=${limit}`, {
+    return request<PaginatedResponse<LeadRecord>>(`/leads?page=${page}&limit=${limit}`, {
+      token,
+    })
+  },
+  createLead(token: string, payload: LeadPayload) {
+    return request<LeadRecord>('/leads', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateLead(token: string, leadId: string, payload: Partial<LeadPayload>) {
+    return request<LeadRecord>(`/leads/${leadId}`, {
+      method: 'PUT',
+      body: payload,
       token,
     })
   },
