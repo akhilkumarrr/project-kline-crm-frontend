@@ -240,6 +240,84 @@ export type InvoicePayload = {
   notes?: string
 }
 
+export type TicketRecord = {
+  id: string
+  ticketNumber: string
+  subject: string
+  description: string
+  contactId: string
+  contact?: ContactRecord | null
+  ownerId?: string
+  assignedTo?: string | null
+  assignedUser?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  status?: string
+  priority?: string
+  source?: string
+  metadata?: Record<string, unknown> | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type TicketPayload = {
+  ticketNumber: string
+  subject: string
+  description: string
+  contactId: string
+  assignedTo?: string
+  status?: string
+  priority?: string
+  source?: string
+}
+
+export type OnboardingWorkflowRecord = {
+  id: string
+  name: string
+  description?: string | null
+  contactId?: string | null
+  contact?: ContactRecord | null
+  leadId?: string | null
+  lead?: LeadRecord | null
+  ownerId?: string
+  assignedTo?: string | null
+  assignedUser?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  status?: string
+  startDate?: string | null
+  dueDate?: string | null
+  steps?:
+    | Array<{
+        id: string
+        title: string
+        completed: boolean
+        dueDate?: string
+        notes?: string
+      }>
+    | null
+  metadata?: Record<string, unknown> | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type OnboardingWorkflowPayload = {
+  name: string
+  description?: string
+  contactId?: string
+  leadId?: string
+  assignedTo?: string
+  status?: string
+  startDate?: string
+  dueDate?: string
+}
+
 const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 ).replace(/\/$/, '')
@@ -392,11 +470,43 @@ export const api = {
       token,
     })
   },
-  getOnboardingWorkflows(token: string) {
-    return request<any[]>('/onboarding-workflows', { token })
-  },
   getTickets(token: string) {
-    return request<any[]>('/tickets', { token })
+    return request<TicketRecord[]>('/tickets', { token })
+  },
+  createTicket(token: string, payload: TicketPayload) {
+    return request<TicketRecord>('/tickets', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateTicket(token: string, ticketId: string, payload: Partial<TicketPayload>) {
+    return request<TicketRecord>(`/tickets/${ticketId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  getOnboardingWorkflows(token: string) {
+    return request<OnboardingWorkflowRecord[]>('/onboarding-workflows', { token })
+  },
+  createOnboardingWorkflow(token: string, payload: OnboardingWorkflowPayload) {
+    return request<OnboardingWorkflowRecord>('/onboarding-workflows', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateOnboardingWorkflow(
+    token: string,
+    workflowId: string,
+    payload: Partial<OnboardingWorkflowPayload>,
+  ) {
+    return request<OnboardingWorkflowRecord>(`/onboarding-workflows/${workflowId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
   },
   getAnalyticsPipeline(token: string) {
     return request<any>('/analytics/pipeline', { token })

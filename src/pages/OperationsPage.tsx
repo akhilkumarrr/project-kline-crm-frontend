@@ -6,6 +6,8 @@ import {
 } from '../data/crm-data'
 import { AppointmentsWorkspace } from '../components/appointments/AppointmentsWorkspace'
 import { InvoicesWorkspace } from '../components/invoices/InvoicesWorkspace'
+import { OnboardingWorkspace } from '../components/onboarding/OnboardingWorkspace'
+import { TicketsWorkspace } from '../components/tickets/TicketsWorkspace'
 import { TasksWorkspace } from '../components/tasks/TasksWorkspace'
 import { LoadState } from '../components/LoadState'
 import { useApiQuery } from '../hooks/useApiQuery'
@@ -50,6 +52,14 @@ const operationsMap = {
 } as const
 
 export function OperationsPage({ activeView }: OperationsPageProps) {
+  if (activeView === 'tickets') {
+    return <TicketsWorkspace />
+  }
+
+  if (activeView === 'onboarding') {
+    return <OnboardingWorkspace />
+  }
+
   if (activeView === 'invoices') {
     return <InvoicesWorkspace />
   }
@@ -65,7 +75,7 @@ export function OperationsPage({ activeView }: OperationsPageProps) {
   const config = operationsMap[activeView as keyof typeof operationsMap] ?? operationsMap.tasks
   const { token } = useAuth()
 
-  const loader = () => {
+  const loader = (): Promise<any[]> => {
     switch (activeView) {
       case 'calendar':
         return api.getAppointments(token!)
