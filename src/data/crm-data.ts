@@ -17,6 +17,8 @@ export const sidebarSections: SidebarSection[] = [
       { id: 'dashboard', label: 'Dashboard', glyph: '◫' },
       { id: 'contacts', label: 'Contacts', glyph: '◎', count: '482' },
       { id: 'pipeline', label: 'Pipeline', glyph: '◧', count: '26' },
+      { id: 'quotes', label: 'Quotes', glyph: '◨', count: '18' },
+      { id: 'contracts', label: 'Contracts', glyph: '◰', count: '12' },
       { id: 'tasks', label: 'Tasks', glyph: '▣', count: '14' },
     ],
   },

@@ -10,6 +10,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { OperationsPage } from './pages/OperationsPage'
 import { PipelinePage } from './pages/PipelinePage'
+import { RevenuePage } from './pages/RevenuePage'
 import { TeamPage } from './pages/TeamPage'
 
 const pageTitleMap: Record<string, string> = Object.fromEntries(
@@ -31,6 +32,9 @@ function App() {
         return <ContactsPage />
       case 'pipeline':
         return <PipelinePage />
+      case 'quotes':
+      case 'contracts':
+        return <RevenuePage activeView={activeView} />
       case 'tasks':
       case 'calendar':
       case 'invoices':

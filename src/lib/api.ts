@@ -116,6 +116,85 @@ export type LeadPayload = {
   notes?: string
 }
 
+export type QuoteLineItem = {
+  id: string
+  description: string
+  quantity: number
+  unitPrice: number
+  total: number
+}
+
+export type QuoteRecord = {
+  id: string
+  quoteNumber: string
+  contactId: string
+  contact?: ContactRecord | null
+  status?: string
+  description?: string | null
+  lineItems?: QuoteLineItem[] | null
+  subtotal?: number | string | null
+  taxPercent?: number | string | null
+  taxAmount?: number | string | null
+  total?: number | string | null
+  validUntil?: string | null
+  sentAt?: string | null
+  acceptedAt?: string | null
+  createdById?: string
+  createdBy?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  notes?: string | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type QuotePayload = {
+  quoteNumber: string
+  contactId: string
+  description?: string
+  lineItems: QuoteLineItem[]
+  subtotal: number
+  taxPercent: number
+  taxAmount: number
+  total: number
+  validUntil?: string
+  notes?: string
+}
+
+export type ContractRecord = {
+  id: string
+  title: string
+  contractNumber: string
+  contactId: string
+  contact?: ContactRecord | null
+  status?: string
+  description?: string | null
+  startDate?: string | null
+  endDate?: string | null
+  value?: number | string | null
+  paymentTerms?: string | null
+  notes?: string | null
+  customFields?: Record<string, unknown> | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type ContractPayload = {
+  title: string
+  contractNumber: string
+  contactId: string
+  status?: string
+  description?: string
+  startDate: string
+  endDate: string
+  value: number
+  paymentTerms?: string
+  notes?: string
+}
+
 export type TaskRecord = {
   id: string
   title: string
@@ -431,6 +510,61 @@ export const api = {
   },
   updateTaskStatus(token: string, taskId: string, status: string) {
     return request<TaskRecord>(`/tasks/${taskId}/status`, {
+      method: 'PUT',
+      body: { status },
+      token,
+    })
+  },
+  getQuotes(token: string, page = 1, limit = 20) {
+    return request<PaginatedResponse<QuoteRecord>>(`/quotes?page=${page}&limit=${limit}`, {
+      token,
+    })
+  },
+  createQuote(token: string, payload: QuotePayload) {
+    return request<QuoteRecord>('/quotes', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateQuote(token: string, quoteId: string, payload: Partial<QuotePayload>) {
+    return request<QuoteRecord>(`/quotes/${quoteId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  updateQuoteStatus(token: string, quoteId: string, status: string) {
+    return request<QuoteRecord>(`/quotes/${quoteId}/status`, {
+      method: 'PUT',
+      body: { status },
+      token,
+    })
+  },
+  getContracts(token: string, page = 1, limit = 20) {
+    return request<PaginatedResponse<ContractRecord>>(
+      `/contracts?page=${page}&limit=${limit}`,
+      {
+        token,
+      },
+    )
+  },
+  createContract(token: string, payload: ContractPayload) {
+    return request<ContractRecord>('/contracts', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateContract(token: string, contractId: string, payload: Partial<ContractPayload>) {
+    return request<ContractRecord>(`/contracts/${contractId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  updateContractStatus(token: string, contractId: string, status: string) {
+    return request<ContractRecord>(`/contracts/${contractId}/status`, {
       method: 'PUT',
       body: { status },
       token,
