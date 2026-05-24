@@ -42,6 +42,65 @@ type PipelineColumnView = {
   value: string
 }
 
+const normalizeLeadSourceValue = (sourceLabel: string) => {
+  const normalized = sourceLabel.trim().toLowerCase()
+
+  if (!normalized) {
+    return 'other'
+  }
+
+  if (
+    normalized === 'website' ||
+    normalized.includes('google') ||
+    normalized.includes('search') ||
+    normalized.includes('linkedin') ||
+    normalized.includes('instagram') ||
+    normalized.includes('thought leadership')
+  ) {
+    return 'website'
+  }
+
+  if (normalized.includes('referral') || normalized.includes('venue') || normalized.includes('partner')) {
+    return 'referral'
+  }
+
+  if (normalized.includes('email')) {
+    return 'email'
+  }
+
+  if (normalized.includes('workshop') || normalized.includes('trade show')) {
+    return 'trade_show'
+  }
+
+  if (normalized.includes('cold call') || normalized.includes('cold-call')) {
+    return 'cold_call'
+  }
+
+  if (normalized === 'other') {
+    return 'other'
+  }
+
+  return 'other'
+}
+
+const buildLeadSourceOptions = (sourceLabels: string[]) => {
+  const uniqueOptions = new Map<string, { label: string; value: string }>()
+
+  sourceLabels.forEach((sourceLabel) => {
+    const value = normalizeLeadSourceValue(sourceLabel)
+
+    if (!uniqueOptions.has(value)) {
+      uniqueOptions.set(value, { label: sourceLabel, value })
+    }
+  })
+
+  if (!uniqueOptions.size) {
+    uniqueOptions.set('other', { label: 'Other', value: 'other' })
+  }
+
+  return Array.from(uniqueOptions.values())
+}
+
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString(undefined, {
     maximumFractionDigits: 0,
@@ -555,10 +614,7 @@ export function PipelinePage() {
         onClose={closeEditor}
         onSubmit={handleSave}
         saveError={saveError}
-        sourceOptions={settings.runtime.starterPack.leadSources.map((source) => ({
-          label: source,
-          value: source.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
-        }))}
+        sourceOptions={buildLeadSourceOptions(settings.runtime.starterPack.leadSources)}
         stageOptions={pipelineStages.map((stage) => ({ label: stage.label, value: stage.key }))}
       />
     </>
