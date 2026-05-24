@@ -236,6 +236,11 @@
   color: var(--danger-fg);
 }
 
+.success-copy {
+  margin: 0;
+  color: var(--success-fg);
+}
+
 .auth-button {
   width: 100%;
   justify-content: center;

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { EntityEmailPanel } from '../email/EntityEmailPanel'
 import { LoadState } from '../LoadState'
 import { QuoteEditor, createEmptyQuoteForm, type QuoteFormState } from './QuoteEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
@@ -11,6 +12,7 @@ import {
 } from '../../lib/api'
 
 type QuoteViewModel = {
+  contactEmail?: string | null
   contactLabel: string
   createdBy: string
   id: string
@@ -69,6 +71,7 @@ const buildTone = (status?: string) => {
 }
 
 const mapQuote = (quote: QuoteRecord): QuoteViewModel => ({
+  contactEmail: quote.contact?.email || null,
   contactLabel:
     `${quote.contact?.firstName || ''} ${quote.contact?.lastName || ''}`.trim() ||
     quote.contact?.company ||
@@ -513,6 +516,14 @@ export function QuotesWorkspace() {
                   <span className="data-label">Notes</span>
                   <p>{selectedQuote.notes || 'No notes added to this quote yet.'}</p>
                 </div>
+
+                <EntityEmailPanel
+                  defaultToEmail={selectedQuote.contactEmail}
+                  entityId={selectedQuote.id}
+                  entityKind="quote"
+                  entityLogType="QUOTE"
+                  heading="Send quote by email"
+                />
               </div>
             ) : (
               <div className="empty-card">Select a quote to see the full proposal summary.</div>

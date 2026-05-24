@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { EntityEmailPanel } from '../email/EntityEmailPanel'
 import { LoadState } from '../LoadState'
 import { ContractEditor, createEmptyContractForm, type ContractFormState } from './ContractEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
@@ -10,6 +11,7 @@ import {
 } from '../../lib/api'
 
 type ContractViewModel = {
+  contactEmail?: string | null
   contactLabel: string
   endDate?: string | null
   id: string
@@ -62,6 +64,7 @@ const buildTone = (status?: string) => {
 }
 
 const mapContract = (contract: ContractRecord): ContractViewModel => ({
+  contactEmail: contract.contact?.email || null,
   contactLabel:
     `${contract.contact?.firstName || ''} ${contract.contact?.lastName || ''}`.trim() ||
     contract.contact?.company ||
@@ -358,6 +361,14 @@ export function ContractsWorkspace() {
                   <span className="data-label">Notes</span>
                   <p>{selectedContract.notes || 'No contract notes have been added yet.'}</p>
                 </div>
+
+                <EntityEmailPanel
+                  defaultToEmail={selectedContract.contactEmail}
+                  entityId={selectedContract.id}
+                  entityKind="contract"
+                  entityLogType="CONTRACT"
+                  heading="Send contract by email"
+                />
               </div>
             ) : (
               <div className="empty-card">Select a contract to see the agreement summary.</div>

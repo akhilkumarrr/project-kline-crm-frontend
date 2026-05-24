@@ -465,6 +465,11 @@ export type EmailLogRecord = {
   sentAt?: string
 }
 
+export type EntityEmailSendPayload = {
+  toEmail: string
+  templateId?: string
+}
+
 export type SendEmailPayload = {
   to: string
   cc?: string
@@ -890,6 +895,25 @@ export const api = {
   resendEmail(token: string, emailLogId: string) {
     return request<EmailLogRecord>(`/email/logs/${emailLogId}/resend`, {
       method: 'POST',
+      token,
+    })
+  },
+  getEntityEmailLogs(token: string, entityType: string, entityId: string) {
+    return request<EmailLogRecord[]>(`/email/logs/entity/${entityType}/${entityId}`, {
+      token,
+    })
+  },
+  sendQuoteViaEmail(token: string, quoteId: string, payload: EntityEmailSendPayload) {
+    return request<EmailLogRecord>(`/email/send-quote/${quoteId}`, {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  sendContractViaEmail(token: string, contractId: string, payload: EntityEmailSendPayload) {
+    return request<EmailLogRecord>(`/email/send-contract/${contractId}`, {
+      method: 'POST',
+      body: payload,
       token,
     })
   },
