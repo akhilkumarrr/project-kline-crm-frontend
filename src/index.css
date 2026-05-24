@@ -1,0 +1,69 @@
+:root {
+  font-family:
+    'Sora',
+    'Avenir Next',
+    'Segoe UI',
+    sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #18262d;
+  background:
+    linear-gradient(180deg, #f7f1e8 0%, #f1e5d6 46%, #ebe4dc 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --surface: #fff8ef;
+  --surface-strong: #fff2dd;
+  --accent: #ffaf70;
+  --accent-strong: #d97332;
+  --ink: #18262d;
+  --ink-strong: #fff8ef;
+  --ink-soft: #6d7375;
+  --border-strong: rgba(24, 38, 45, 0.1);
+  --shadow-soft:
+    0 18px 38px rgba(76, 54, 39, 0.09),
+    0 2px 8px rgba(76, 54, 39, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #92755c;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
