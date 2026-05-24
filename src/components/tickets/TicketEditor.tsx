@@ -4,6 +4,7 @@ import type { ContactRecord, CurrentUser, TicketPayload } from '../../lib/api'
 export type TicketFormState = TicketPayload
 
 type TicketEditorProps = {
+  contactLabelSingular?: string
   contacts: ContactRecord[]
   form: TicketFormState
   isOpen: boolean
@@ -13,6 +14,7 @@ type TicketEditorProps = {
   onClose: () => void
   onSubmit: () => Promise<void>
   saveError: string | null
+  ticketLabelSingular?: string
   users: CurrentUser[]
 }
 
@@ -52,6 +54,7 @@ export function createEmptyTicketForm(contactId?: string): TicketFormState {
 }
 
 export function TicketEditor({
+  contactLabelSingular = 'Contact',
   contacts,
   form,
   isOpen,
@@ -61,6 +64,7 @@ export function TicketEditor({
   onClose,
   onSubmit,
   saveError,
+  ticketLabelSingular = 'Ticket',
   users,
 }: TicketEditorProps) {
   if (!isOpen) {
@@ -76,13 +80,21 @@ export function TicketEditor({
     <div className="drawer-backdrop" role="presentation" onClick={onClose}>
       <section
         className="drawer-panel"
-        aria-label={mode === 'create' ? 'Create ticket' : 'Edit ticket'}
+        aria-label={
+          mode === 'create'
+            ? `Create ${ticketLabelSingular.toLowerCase()}`
+            : `Edit ${ticketLabelSingular.toLowerCase()}`
+        }
         onClick={(event) => event.stopPropagation()}
       >
         <div className="drawer-header">
           <div>
             <p className="eyebrow">{mode === 'create' ? 'New support issue' : 'Update service issue'}</p>
-            <h3>{mode === 'create' ? 'Create ticket' : 'Edit ticket'}</h3>
+            <h3>
+              {mode === 'create'
+                ? `Create ${ticketLabelSingular.toLowerCase()}`
+                : `Edit ${ticketLabelSingular.toLowerCase()}`}
+            </h3>
           </div>
           <button type="button" className="icon-button" onClick={onClose}>
             Close
@@ -92,7 +104,7 @@ export function TicketEditor({
         <form className="drawer-form" onSubmit={handleSubmit}>
           <div className="form-grid">
             <label className="field">
-              <span>Ticket number</span>
+              <span>{`${ticketLabelSingular} number`}</span>
               <input
                 required
                 value={form.ticketNumber}
@@ -101,13 +113,13 @@ export function TicketEditor({
             </label>
 
             <label className="field">
-              <span>Contact</span>
+              <span>{contactLabelSingular}</span>
               <select
                 required
                 value={form.contactId}
                 onChange={(event) => onChange('contactId', event.target.value)}
               >
-                <option value="">Select a contact</option>
+                <option value="">{`Select a ${contactLabelSingular.toLowerCase()}`}</option>
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}

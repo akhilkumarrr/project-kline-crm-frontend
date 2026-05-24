@@ -5,6 +5,7 @@ import { TaskEditor, createEmptyTaskForm } from './TaskEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeedback } from '../../hooks/useFeedback'
+import { useWorkspaceTemplate } from '../../hooks/useWorkspaceTemplate'
 import {
   navigateToRoute,
   readHashParam,
@@ -130,6 +131,7 @@ const trimTaskPayload = (form: TaskPayload): TaskPayload => ({
 export function TasksWorkspace() {
   const { token } = useAuth()
   const { notifyError, notifySuccess } = useFeedback()
+  const { labels, settings } = useWorkspaceTemplate()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -381,7 +383,7 @@ export function TasksWorkspace() {
             ) : (
               <EmptyState
                 actionLabel="Create task"
-                description="Create follow-ups, assign owners, and connect the work directly to contacts or opportunities."
+                description={`Create follow-ups, assign owners, and connect the work directly to ${labels.contactPlural.toLowerCase()} or opportunities.`}
                 onAction={openCreate}
                 title="No tasks yet"
               />
@@ -501,6 +503,8 @@ export function TasksWorkspace() {
       </section>
 
       <TaskEditor
+        categorySuggestions={settings.runtime.starterPack.taskCategories}
+        contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}
         isOpen={isEditorOpen}

@@ -4,6 +4,7 @@ import type { ContactRecord, LeadPayload } from '../../lib/api'
 export type LeadFormState = LeadPayload
 
 type LeadEditorProps = {
+  contactLabelSingular?: string
   contacts: ContactRecord[]
   form: LeadFormState
   isOpen: boolean
@@ -13,9 +14,11 @@ type LeadEditorProps = {
   onClose: () => void
   onSubmit: () => Promise<void>
   saveError: string | null
+  sourceOptions?: Array<{ label: string; value: string }>
+  stageOptions?: Array<{ label: string; value: string }>
 }
 
-const stageOptions = [
+const defaultStageOptions = [
   { label: 'New', value: 'new' },
   { label: 'Contacted', value: 'contacted' },
   { label: 'Qualified', value: 'qualified' },
@@ -25,7 +28,7 @@ const stageOptions = [
   { label: 'Closed lost', value: 'closed_lost' },
 ]
 
-const sourceOptions = [
+const defaultSourceOptions = [
   { label: 'Website', value: 'website' },
   { label: 'Referral', value: 'referral' },
   { label: 'Cold call', value: 'cold_call' },
@@ -49,6 +52,7 @@ export function createEmptyLeadForm(contactId?: string): LeadFormState {
 }
 
 export function LeadEditor({
+  contactLabelSingular = 'Contact',
   contacts,
   form,
   isOpen,
@@ -58,6 +62,8 @@ export function LeadEditor({
   onClose,
   onSubmit,
   saveError,
+  sourceOptions = defaultSourceOptions,
+  stageOptions = defaultStageOptions,
 }: LeadEditorProps) {
   if (!isOpen) {
     return null
@@ -103,7 +109,7 @@ export function LeadEditor({
                 value={form.contactId}
                 onChange={(event) => onChange('contactId', event.target.value)}
               >
-                <option value="">Select a contact</option>
+                <option value="">{`Select a ${contactLabelSingular.toLowerCase()}`}</option>
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()} {contact.company ? `- ${contact.company}` : ''}

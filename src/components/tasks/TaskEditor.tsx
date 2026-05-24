@@ -4,6 +4,8 @@ import type { ContactRecord, CurrentUser, LeadRecord, TaskPayload } from '../../
 export type TaskFormState = TaskPayload
 
 type TaskEditorProps = {
+  categorySuggestions?: string[]
+  contactLabelSingular?: string
   contacts: ContactRecord[]
   form: TaskFormState
   isOpen: boolean
@@ -51,6 +53,8 @@ export function createEmptyTaskForm(): TaskFormState {
 }
 
 export function TaskEditor({
+  categorySuggestions = [],
+  contactLabelSingular = 'Contact',
   contacts,
   form,
   isOpen,
@@ -150,9 +154,17 @@ export function TaskEditor({
             <label className="field">
               <span>Category</span>
               <input
+                list="task-category-suggestions"
                 value={form.category || ''}
                 onChange={(event) => onChange('category', event.target.value)}
               />
+              {categorySuggestions.length ? (
+                <datalist id="task-category-suggestions">
+                  {categorySuggestions.map((category) => (
+                    <option key={category} value={category} />
+                  ))}
+                </datalist>
+              ) : null}
             </label>
 
             <label className="field">
@@ -178,7 +190,7 @@ export function TaskEditor({
               >
                 {relatedEntityOptions.map((option) => (
                   <option key={option.value || 'none'} value={option.value}>
-                    {option.label}
+                    {option.value === 'contact' ? contactLabelSingular : option.label}
                   </option>
                 ))}
               </select>

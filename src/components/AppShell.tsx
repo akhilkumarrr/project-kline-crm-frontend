@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useState } from 'react'
-import { sidebarSections } from '../data/crm-data'
+import type { SidebarSection } from '../data/crm-data'
 import type { CurrentUser } from '../lib/api'
 
 type AppShellProps = {
@@ -10,7 +10,10 @@ type AppShellProps = {
   onNavigate: (view: string) => void
   onLogout: () => void
   onSearch: (query: string) => void
+  searchPlaceholder: string
+  sidebarSections: SidebarSection[]
   user: CurrentUser | null
+  workspaceName: string
 }
 
 export function AppShell({
@@ -20,7 +23,10 @@ export function AppShell({
   onNavigate,
   onLogout,
   onSearch,
+  searchPlaceholder,
+  sidebarSections,
   user,
+  workspaceName,
 }: AppShellProps) {
   const [searchValue, setSearchValue] = useState('')
 
@@ -37,7 +43,7 @@ export function AppShell({
 
         <div className="workspace-card">
           <p className="eyebrow">Workspace</p>
-          <strong>North Star Advisory</strong>
+          <strong>{workspaceName}</strong>
           <span>12 team members across sales, onboarding, and support</span>
         </div>
 
@@ -95,7 +101,7 @@ export function AppShell({
               <span aria-hidden="true">Search</span>
               <input
                 type="search"
-                placeholder="Contacts, leads, invoices, tickets"
+                placeholder={searchPlaceholder}
                 aria-label="Search the CRM"
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}

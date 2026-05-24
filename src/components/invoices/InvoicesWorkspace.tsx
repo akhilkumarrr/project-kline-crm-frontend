@@ -4,6 +4,7 @@ import { LoadState } from '../LoadState'
 import { InvoiceEditor, createEmptyInvoiceForm } from './InvoiceEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import { useWorkspaceTemplate } from '../../hooks/useWorkspaceTemplate'
 import {
   navigateToRoute,
   readHashParam,
@@ -131,6 +132,7 @@ const trimInvoicePayload = (form: InvoicePayload): InvoicePayload => ({
 
 export function InvoicesWorkspace() {
   const { token } = useAuth()
+  const { labels, settings } = useWorkspaceTemplate()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -183,6 +185,7 @@ export function InvoicesWorkspace() {
 
   const selectedInvoice =
     invoices.find((invoice) => invoice.id === selectedInvoiceId) || invoices[0] || null
+  const documentDefaults = settings.runtime.starterPack.documents
 
   useEffect(() => {
     if (!selectedInvoiceId && invoices[0]) {
@@ -218,7 +221,11 @@ export function InvoicesWorkspace() {
   const openCreate = () => {
     setEditorMode('create')
     setEditingInvoiceId(null)
-    setForm(createEmptyInvoiceForm((contacts[0] as ContactRecord | undefined)?.id))
+    setForm(
+      createEmptyInvoiceForm((contacts[0] as ContactRecord | undefined)?.id, {
+        notes: documentDefaults.invoiceFooter,
+      }),
+    )
     setSaveError(null)
     setIsEditorOpen(true)
   }
@@ -402,7 +409,7 @@ export function InvoicesWorkspace() {
                     <strong>{formatTitleCase(selectedInvoice.status)}</strong>
                   </div>
                   <div>
-                    <span className="data-label">Customer</span>
+                    <span className="data-label">{labels.contactSingular}</span>
                     <strong>{selectedInvoice.contactLabel}</strong>
                   </div>
                   <div>
@@ -424,6 +431,11 @@ export function InvoicesWorkspace() {
                 </div>
 
                 <div className="detail-note">
+                  <span className="data-label">Invoice footer</span>
+                  <p>{documentDefaults.invoiceFooter}</p>
+                </div>
+
+                <div className="detail-note">
                   <span className="data-label">Notes</span>
                   <p>{selectedInvoice.notes || 'No notes have been added to this invoice yet.'}</p>
                 </div>
@@ -434,7 +446,7 @@ export function InvoicesWorkspace() {
                     className="ghost-button compact-button context-link-button"
                     onClick={() => navigateToRoute('contacts', { selected: selectedInvoice.contactId })}
                   >
-                    Open contact
+                    {`Open ${labels.contactSingular.toLowerCase()}`}
                   </button>
                   {selectedInvoice.quoteId ? (
                     <button
@@ -467,6 +479,7 @@ export function InvoicesWorkspace() {
       </section>
 
       <InvoiceEditor
+        contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}
         isOpen={isEditorOpen}

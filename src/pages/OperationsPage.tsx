@@ -12,46 +12,16 @@ import { TasksWorkspace } from '../components/tasks/TasksWorkspace'
 import { LoadState } from '../components/LoadState'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { useAuth } from '../hooks/useAuth'
+import { useWorkspaceTemplate } from '../hooks/useWorkspaceTemplate'
 import { api } from '../lib/api'
 
 type OperationsPageProps = {
   activeView: string
 }
 
-const operationsMap = {
-  tasks: {
-    eyebrow: 'Execution',
-    title: 'Task command center',
-    pill: '14 due today',
-    rows: [],
-  },
-  calendar: {
-    eyebrow: 'Scheduling',
-    title: 'Appointments and calendar',
-    pill: '11 booked',
-    rows: appointmentRows,
-  },
-  invoices: {
-    eyebrow: 'Cash flow',
-    title: 'Invoices and payment tracking',
-    pill: '$41K open',
-    rows: invoiceRows,
-  },
-  onboarding: {
-    eyebrow: 'Delivery',
-    title: 'Customer onboarding workflows',
-    pill: '5 active launches',
-    rows: onboardingRows,
-  },
-  tickets: {
-    eyebrow: 'Support',
-    title: 'Service tickets and escalations',
-    pill: '9 open tickets',
-    rows: ticketRows,
-  },
-} as const
-
 export function OperationsPage({ activeView }: OperationsPageProps) {
+  const { labels } = useWorkspaceTemplate()
+
   if (activeView === 'tickets') {
     return <TicketsWorkspace />
   }
@@ -71,6 +41,39 @@ export function OperationsPage({ activeView }: OperationsPageProps) {
   if (activeView === 'tasks') {
     return <TasksWorkspace />
   }
+
+  const operationsMap = {
+    tasks: {
+      eyebrow: 'Execution',
+      title: 'Task command center',
+      pill: '14 due today',
+      rows: [],
+    },
+    calendar: {
+      eyebrow: 'Scheduling',
+      title: `${labels.appointmentPlural} and calendar`,
+      pill: '11 booked',
+      rows: appointmentRows,
+    },
+    invoices: {
+      eyebrow: 'Cash flow',
+      title: 'Invoices and payment tracking',
+      pill: '$41K open',
+      rows: invoiceRows,
+    },
+    onboarding: {
+      eyebrow: 'Delivery',
+      title: `${labels.onboardingPlural} and launch work`,
+      pill: '5 active launches',
+      rows: onboardingRows,
+    },
+    tickets: {
+      eyebrow: labels.ticketPlural,
+      title: `${labels.ticketPlural} and escalations`,
+      pill: '9 open tickets',
+      rows: ticketRows,
+    },
+  } as const
 
   const config = operationsMap[activeView as keyof typeof operationsMap] ?? operationsMap.tasks
   const { token } = useAuth()
@@ -122,7 +125,7 @@ export function OperationsPage({ activeView }: OperationsPageProps) {
         : activeView === 'onboarding'
           ? (data as any[] | null)?.map((row) => ({
               title: row.name,
-              detail: row.description || row.contact?.company || 'Onboarding workflow',
+              detail: row.description || row.contact?.company || labels.onboardingSingular,
               meta: row.dueDate || row.startDate || 'No due date',
               status: row.status,
               tone:
@@ -135,7 +138,7 @@ export function OperationsPage({ activeView }: OperationsPageProps) {
           : activeView === 'tickets'
             ? (data as any[] | null)?.map((row) => ({
                 title: row.subject,
-                detail: row.description || row.contact?.company || 'Support ticket',
+                detail: row.description || row.contact?.company || labels.ticketSingular,
                 meta: row.ticketNumber || row.priority,
                 status: row.status,
                 tone:

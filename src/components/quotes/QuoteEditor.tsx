@@ -2,8 +2,14 @@ import { type FormEvent } from 'react'
 import type { ContactRecord, QuoteLineItem, QuotePayload } from '../../lib/api'
 
 export type QuoteFormState = QuotePayload
+type QuoteFormDefaults = {
+  description?: string
+  notes?: string
+  taxPercent?: number
+}
 
 type QuoteEditorProps = {
+  contactLabelSingular?: string
   contacts: ContactRecord[]
   form: QuoteFormState
   isOpen: boolean
@@ -21,11 +27,14 @@ type QuoteEditorProps = {
 const makeLineItemId = () =>
   globalThis.crypto?.randomUUID?.() || `line-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
-export function createEmptyQuoteForm(contactId?: string): QuoteFormState {
+export function createEmptyQuoteForm(
+  contactId?: string,
+  defaults: QuoteFormDefaults = {},
+): QuoteFormState {
   return {
     quoteNumber: '',
     contactId: contactId || '',
-    description: '',
+    description: defaults.description || '',
     lineItems: [
       {
         id: makeLineItemId(),
@@ -36,15 +45,16 @@ export function createEmptyQuoteForm(contactId?: string): QuoteFormState {
       },
     ],
     subtotal: 0,
-    taxPercent: 8,
+    taxPercent: defaults.taxPercent ?? 8,
     taxAmount: 0,
     total: 0,
     validUntil: '',
-    notes: '',
+    notes: defaults.notes || '',
   }
 }
 
 export function QuoteEditor({
+  contactLabelSingular = 'Contact',
   contacts,
   form,
   isOpen,
@@ -96,13 +106,13 @@ export function QuoteEditor({
             </label>
 
             <label className="field">
-              <span>Contact</span>
+              <span>{contactLabelSingular}</span>
               <select
                 required
                 value={form.contactId}
                 onChange={(event) => onChange('contactId', event.target.value)}
               >
-                <option value="">Select a contact</option>
+                <option value="">{`Select a ${contactLabelSingular.toLowerCase()}`}</option>
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}

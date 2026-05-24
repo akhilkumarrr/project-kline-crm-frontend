@@ -1,9 +1,10 @@
 import './App.css'
-import { sidebarSections } from './data/crm-data'
+import { getSidebarSections } from './data/crm-data'
 import { AppShell } from './components/AppShell'
 import { LoadState } from './components/LoadState'
 import { useAuth } from './hooks/useAuth'
 import { useCrmRoute } from './hooks/useCrmRoute'
+import { useWorkspaceTemplate } from './hooks/useWorkspaceTemplate'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { ContactsPage } from './pages/ContactsPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -14,16 +15,16 @@ import { RevenuePage } from './pages/RevenuePage'
 import { SearchPage } from './pages/SearchPage'
 import { TeamPage } from './pages/TeamPage'
 import { EmailPage } from './pages/EmailPage'
-
-const pageTitleMap: Record<string, string> = Object.fromEntries(
-  sidebarSections.flatMap((section) =>
-    section.items.map((item) => [item.id, item.label]),
-  ),
-)
+import { SetupPage } from './pages/SetupPage'
 
 function App() {
   const auth = useAuth()
+  const { settings, viewLabels } = useWorkspaceTemplate()
   const { route, navigate } = useCrmRoute('dashboard')
+  const sidebarSections = getSidebarSections(viewLabels)
+  const pageTitleMap: Record<string, string> = Object.fromEntries(
+    sidebarSections.flatMap((section) => section.items.map((item) => [item.id, item.label])),
+  )
 
   const activeView = pageTitleMap[route] ? route : 'dashboard'
   const activeLabel = pageTitleMap[activeView] ?? 'Dashboard'
@@ -39,6 +40,8 @@ function App() {
         return <RevenuePage activeView={activeView} />
       case 'search':
         return <SearchPage />
+      case 'setup':
+        return <SetupPage />
       case 'tasks':
       case 'calendar':
       case 'invoices':
@@ -82,7 +85,10 @@ function App() {
         const next = query.trim()
         window.location.hash = next ? `/search?q=${encodeURIComponent(next)}` : '/search'
       }}
+      searchPlaceholder={`${settings.runtime.labels.contactPlural}, leads, invoices, ${settings.runtime.labels.ticketPlural.toLowerCase()}`}
+      sidebarSections={sidebarSections}
       user={auth.user}
+      workspaceName={settings.workspaceName}
     >
       {renderPage()}
     </AppShell>

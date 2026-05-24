@@ -2,8 +2,14 @@ import { type FormEvent } from 'react'
 import type { ContactRecord, ContractPayload } from '../../lib/api'
 
 export type ContractFormState = ContractPayload
+type ContractFormDefaults = {
+  description?: string
+  notes?: string
+  paymentTerms?: string
+}
 
 type ContractEditorProps = {
+  contactLabelSingular?: string
   contacts: ContactRecord[]
   form: ContractFormState
   isOpen: boolean
@@ -15,7 +21,10 @@ type ContractEditorProps = {
   saveError: string | null
 }
 
-export function createEmptyContractForm(contactId?: string): ContractFormState {
+export function createEmptyContractForm(
+  contactId?: string,
+  defaults: ContractFormDefaults = {},
+): ContractFormState {
   const today = new Date()
   const endDate = new Date(today)
   endDate.setMonth(endDate.getMonth() + 12)
@@ -24,16 +33,17 @@ export function createEmptyContractForm(contactId?: string): ContractFormState {
     title: '',
     contractNumber: '',
     contactId: contactId || '',
-    description: '',
+    description: defaults.description || '',
     startDate: today.toISOString().slice(0, 10),
     endDate: endDate.toISOString().slice(0, 10),
     value: 0,
-    paymentTerms: '',
-    notes: '',
+    paymentTerms: defaults.paymentTerms || '',
+    notes: defaults.notes || '',
   }
 }
 
 export function ContractEditor({
+  contactLabelSingular = 'Contact',
   contacts,
   form,
   isOpen,
@@ -87,13 +97,13 @@ export function ContractEditor({
             </label>
 
             <label className="field">
-              <span>Contact</span>
+              <span>{contactLabelSingular}</span>
               <select
                 required
                 value={form.contactId}
                 onChange={(event) => onChange('contactId', event.target.value)}
               >
-                <option value="">Select a contact</option>
+                <option value="">{`Select a ${contactLabelSingular.toLowerCase()}`}</option>
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}

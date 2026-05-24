@@ -8,6 +8,7 @@ import { contactRecords } from '../data/crm-data'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
+import { useWorkspaceTemplate } from '../hooks/useWorkspaceTemplate'
 import { readHashParam, readHashRouteState, replaceHashRoute } from '../lib/navigation'
 import { api, type ContactPayload, type ContactRecord } from '../lib/api'
 
@@ -83,6 +84,7 @@ const toFormState = (contact: ContactRecord): ContactPayload => ({
 export function ContactsPage() {
   const { token } = useAuth()
   const { notifyError, notifySuccess } = useFeedback()
+  const { settings } = useWorkspaceTemplate()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -260,19 +262,19 @@ export function ContactsPage() {
             <div className="card-heading">
               <div>
                 <p className="eyebrow">Customer relationships</p>
-                <h3>Contacts and account health</h3>
+                <h3>{settings.runtime.labels.contactPlural} and account health</h3>
               </div>
               <div className="inline-actions">
                 <span className="pill cool">
                   {data?.total ? `${data.total} live records` : 'CRM records'}
                 </span>
                 <button type="button" className="primary-button" onClick={openCreate}>
-                  + New contact
+                  + New {settings.runtime.labels.contactSingular.toLowerCase()}
                 </button>
               </div>
             </div>
 
-            <LoadState loading={loading} error={error} title="Loading contacts" />
+            <LoadState loading={loading} error={error} title={`Loading ${settings.runtime.labels.contactPlural.toLowerCase()}`} />
 
             {contacts.length ? (
               <div className="table-list">
@@ -325,10 +327,10 @@ export function ContactsPage() {
               </div>
             ) : (
               <EmptyState
-                actionLabel="Create contact"
+                actionLabel={`Create ${settings.runtime.labels.contactSingular.toLowerCase()}`}
                 description="Create your first customer record to start tracking relationships, revenue, and timeline activity."
                 onAction={openCreate}
-                title="No contacts yet"
+                title={`No ${settings.runtime.labels.contactPlural.toLowerCase()} yet`}
               />
             )}
           </article>

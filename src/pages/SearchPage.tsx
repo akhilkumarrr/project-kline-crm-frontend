@@ -3,6 +3,7 @@ import { navigateToRoute } from '../lib/navigation'
 import { LoadState } from '../components/LoadState'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
+import { useWorkspaceTemplate } from '../hooks/useWorkspaceTemplate'
 import {
   api,
   type ContactRecord,
@@ -16,15 +17,6 @@ import {
 } from '../lib/api'
 
 type SearchEntity = 'all' | 'contacts' | 'leads' | 'quotes' | 'contracts' | 'tasks'
-
-const entityOptions: Array<{ label: string; value: SearchEntity }> = [
-  { label: 'All records', value: 'all' },
-  { label: 'Contacts', value: 'contacts' },
-  { label: 'Leads', value: 'leads' },
-  { label: 'Quotes', value: 'quotes' },
-  { label: 'Contracts', value: 'contracts' },
-  { label: 'Tasks', value: 'tasks' },
-]
 
 const readSearchState = () => {
   const raw = window.location.hash.split('?')[1] || ''
@@ -59,6 +51,7 @@ const countResults = (results: GlobalSearchResults | null) =>
 export function SearchPage() {
   const { token } = useAuth()
   const { confirm, notifyError, notifySuccess } = useFeedback()
+  const { labels, pipelineStages } = useWorkspaceTemplate()
   const [q, setQ] = useState(readSearchState().q)
   const [entity, setEntity] = useState<SearchEntity>(readSearchState().entity)
   const [results, setResults] = useState<GlobalSearchResults | null>(null)
@@ -125,6 +118,14 @@ export function SearchPage() {
   }, [entity, q, token])
 
   const totalResults = useMemo(() => countResults(results), [results])
+  const entityOptions: Array<{ label: string; value: SearchEntity }> = [
+    { label: 'All records', value: 'all' },
+    { label: labels.contactPlural, value: 'contacts' },
+    { label: 'Leads', value: 'leads' },
+    { label: 'Quotes', value: 'quotes' },
+    { label: 'Contracts', value: 'contracts' },
+    { label: 'Tasks', value: 'tasks' },
+  ]
 
   const submitSearch = () => {
     const params = new URLSearchParams()
@@ -224,7 +225,7 @@ export function SearchPage() {
       setAdvancedLeads(null)
       setResults(null)
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Unable to search contacts.')
+      setError(nextError instanceof Error ? nextError.message : `Unable to search ${labels.contactPlural.toLowerCase()}.`)
     } finally {
       setLoading(false)
     }
@@ -360,7 +361,7 @@ export function SearchPage() {
               <h3>Global CRM search</h3>
             </div>
             <span className="pill neutral">
-              {totalResults ? `${totalResults} matches` : 'Search contacts, deals, and work'}
+              {totalResults ? `${totalResults} matches` : `Search ${labels.contactPlural.toLowerCase()}, deals, and work`}
             </span>
           </div>
 
@@ -369,7 +370,7 @@ export function SearchPage() {
               <span>Search query</span>
               <input
                 type="search"
-                placeholder="Try a customer name, quote number, company, or task title"
+                placeholder={`Try a ${labels.contactSingular.toLowerCase()} name, quote number, company, or task title`}
                 value={q}
                 onChange={(event) => setQ(event.target.value)}
               />
@@ -421,7 +422,7 @@ export function SearchPage() {
 
           {!q.trim() && !advancedContacts && !advancedLeads ? (
             <div className="empty-card">
-              Start with a name, account, quote number, contract number, or task title.
+              {`Start with a ${labels.contactSingular.toLowerCase()} name, account, quote number, contract number, or task title.`}
             </div>
           ) : null}
 
@@ -435,7 +436,7 @@ export function SearchPage() {
             <div className="search-results-grid">
               <article className="result-group">
                 <header>
-                  <strong>Contacts</strong>
+                  <strong>{labels.contactPlural}</strong>
                   <span>{results?.contacts?.length || 0}</span>
                 </header>
                 <div className="table-list compact-list">
@@ -530,7 +531,7 @@ export function SearchPage() {
 
           <div className="detail-stack">
             <div className="detail-note">
-              <span className="data-label">Contacts</span>
+              <span className="data-label">{labels.contactPlural}</span>
               <div className="form-grid">
                 <label className="field">
                   <span>Keyword</span>
@@ -560,7 +561,7 @@ export function SearchPage() {
                 </label>
               </div>
               <button type="button" className="primary-button compact-button" onClick={runAdvancedContactSearch}>
-                Search contacts
+                {`Search ${labels.contactPlural.toLowerCase()}`}
               </button>
             </div>
 
@@ -581,12 +582,11 @@ export function SearchPage() {
                     onChange={(event) => setLeadFilters((current) => ({ ...current, stage: event.target.value }))}
                   >
                     <option value="">Any</option>
-                    <option value="new">New</option>
-                    <option value="qualified">Qualified</option>
-                    <option value="proposal">Proposal</option>
-                    <option value="negotiation">Negotiation</option>
-                    <option value="closed_won">Closed won</option>
-                    <option value="closed_lost">Closed lost</option>
+                    {pipelineStages.map((stage: { key: string; label: string }) => (
+                      <option key={stage.key} value={stage.key}>
+                        {stage.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <label className="field field-span-2">

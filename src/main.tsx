@@ -6,6 +6,7 @@ import { AppErrorBoundary } from './components/AppErrorBoundary.tsx'
 import { AuthProvider } from './hooks/useAuth.tsx'
 import { AppearanceProvider } from './hooks/useAppearance.tsx'
 import { FeedbackProvider } from './hooks/useFeedback.tsx'
+import { WorkspaceTemplateProvider } from './hooks/useWorkspaceTemplate.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')!).render(
       <FeedbackProvider>
         <AppErrorBoundary>
           <AuthProvider>
-            <App />
+            <WorkspaceTemplateProvider>
+              <App />
+            </WorkspaceTemplateProvider>
           </AuthProvider>
         </AppErrorBoundary>
       </FeedbackProvider>

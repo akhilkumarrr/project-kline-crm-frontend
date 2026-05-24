@@ -8,6 +8,7 @@ import { dealForecast, pipelineColumns } from '../data/crm-data'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
+import { useWorkspaceTemplate } from '../hooks/useWorkspaceTemplate'
 import {
   navigateToRoute,
   readHashParam,
@@ -41,33 +42,10 @@ type PipelineColumnView = {
   value: string
 }
 
-const stageOrder = [
-  'new',
-  'contacted',
-  'qualified',
-  'proposal',
-  'negotiation',
-  'closed_won',
-  'closed_lost',
-]
-
-const stageLabels: Record<string, string> = {
-  closed_lost: 'Closed lost',
-  closed_won: 'Closed won',
-  contacted: 'Contacted',
-  negotiation: 'Negotiation',
-  new: 'New',
-  proposal: 'Proposal',
-  qualified: 'Qualified',
-}
-
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString(undefined, {
     maximumFractionDigits: 0,
   })}`
-
-const formatStage = (stage: string) =>
-  stageLabels[stage] || stage.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 
 const mapLeadRecord = (lead: LeadRecord): PipelineDealView => {
   const numericValue = Number(lead.value || 0)
@@ -121,6 +99,7 @@ const trimLeadPayload = (form: LeadPayload): LeadPayload => ({
 export function PipelinePage() {
   const { token } = useAuth()
   const { notifyError, notifySuccess } = useFeedback()
+  const { labels, pipelineStages, settings } = useWorkspaceTemplate()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -149,6 +128,11 @@ export function PipelinePage() {
   const liveLeads = leadsQuery.data?.data ?? []
   const contacts = contactsQuery.data?.data ?? []
   const liveDeals = liveLeads.map(mapLeadRecord)
+  const stageDefinitions = settings.runtime.pipeline.stages
+  const stageOrder = stageDefinitions.map((stage) => stage.key)
+  const stageLabelMap = Object.fromEntries(stageDefinitions.map((stage) => [stage.key, stage.label]))
+  const formatStage = (stage: string) =>
+    stageLabelMap[stage] || stage.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 
   const groupedColumns: PipelineColumnView[] = liveDeals.length
     ? stageOrder.map((stage) => {
@@ -160,24 +144,33 @@ export function PipelinePage() {
           value: formatCurrency(deals.reduce((sum, lead) => sum + lead.valueNumber, 0)),
         }
       })
-    : pipelineColumns.map((column) => ({
-        count: column.count,
-        deals: column.deals.map((deal, index) => ({
-          amount: deal.amount,
-          company: deal.name,
-          contactId: `mock-contact-${index}`,
-          contactName: deal.name,
-          id: `mock-lead-${column.stage}-${index}`,
-          name: deal.name,
-          nextStep: deal.nextStep,
-          owner: deal.owner,
-          stage: column.stage.toLowerCase().replace(/\s+/g, '_'),
-          summary: deal.summary,
-          valueNumber: Number(deal.amount.replace(/[^0-9.-]+/g, '')),
-        })),
-        stage: column.stage.toLowerCase().replace(/\s+/g, '_'),
-        value: column.value,
-      }))
+    : stageDefinitions.map((stage, index) => {
+        const column = pipelineColumns[index] ?? {
+          count: 0,
+          deals: [],
+          stage: stage.label,
+          value: '$0',
+        }
+
+        return {
+          count: column.count,
+          deals: column.deals.map((deal, dealIndex) => ({
+            amount: deal.amount,
+            company: deal.name,
+            contactId: `mock-contact-${dealIndex}`,
+            contactName: deal.name,
+            id: `mock-lead-${stage.key}-${dealIndex}`,
+            name: deal.name,
+            nextStep: deal.nextStep,
+            owner: deal.owner,
+            stage: stage.key,
+            summary: deal.summary,
+            valueNumber: Number(deal.amount.replace(/[^0-9.-]+/g, '')),
+          })),
+          stage: stage.key,
+          value: column.value,
+        }
+      })
 
   const selectedLead =
     liveDeals.find((lead) => lead.id === selectedLeadId) ||
@@ -340,7 +333,7 @@ export function PipelinePage() {
             <div className="card-heading">
               <div>
                 <p className="eyebrow">Sales workflow</p>
-                <h3>Pipeline board</h3>
+                <h3>{settings.runtime.pipeline.boardLabel}</h3>
               </div>
               <div className="inline-actions">
                 <span className="pill warm">
@@ -349,7 +342,7 @@ export function PipelinePage() {
                     : 'Live opportunities'}
                 </span>
                 <button type="button" className="primary-button" onClick={openCreate}>
-                  + New lead
+                  + New opportunity
                 </button>
               </div>
             </div>
@@ -407,7 +400,7 @@ export function PipelinePage() {
                           </article>
                         ))
                       ) : (
-                        <div className="empty-card">No leads in this stage yet.</div>
+                        <div className="empty-card">No opportunities in this stage yet.</div>
                       )}
                     </div>
                   </section>
@@ -415,7 +408,7 @@ export function PipelinePage() {
               </div>
             ) : (
               <EmptyState
-                actionLabel="Create lead"
+                actionLabel="Create opportunity"
                 description="Create your first opportunity to start tracking pipeline movement, forecast value, and buyer notes."
                 onAction={openCreate}
                 title="No live opportunities yet"
@@ -437,7 +430,7 @@ export function PipelinePage() {
                   className="ghost-button compact-button"
                   onClick={() => openEdit(selectedLead.id)}
                 >
-                  Edit lead
+                  Edit opportunity
                 </button>
               ) : null}
             </div>
@@ -473,7 +466,7 @@ export function PipelinePage() {
 
                 <div className="detail-note">
                   <span className="data-label">Notes</span>
-                  <p>{selectedLead.notes || selectedLead.summary || 'No notes yet for this lead.'}</p>
+                  <p>{selectedLead.notes || selectedLead.summary || 'No notes yet for this opportunity.'}</p>
                 </div>
 
                 {!selectedLead.id.startsWith('mock-') ? (
@@ -506,7 +499,7 @@ export function PipelinePage() {
             {isLiveSelectedLead ? (
               <>
                 <NoteComposer
-                  buttonLabel="Add note to lead"
+                  buttonLabel="Add note to opportunity"
                   isSaving={isSavingNote}
                   onChange={setNote}
                   onSubmit={handleSaveNote}
@@ -520,12 +513,12 @@ export function PipelinePage() {
                   title="Loading lead activity"
                 />
                 <ActivityTimeline
-                  emptyMessage="No lead activity has been captured yet."
+                  emptyMessage="No opportunity activity has been captured yet."
                   items={timelineQuery.data || []}
                 />
               </>
             ) : (
-              <div className="empty-card">Live lead activity appears here once this opportunity exists in the CRM.</div>
+              <div className="empty-card">Live opportunity activity appears here once this record exists in the CRM.</div>
             )}
           </article>
 
@@ -552,6 +545,7 @@ export function PipelinePage() {
       </section>
 
       <LeadEditor
+        contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}
         isOpen={isEditorOpen}
@@ -561,6 +555,11 @@ export function PipelinePage() {
         onClose={closeEditor}
         onSubmit={handleSave}
         saveError={saveError}
+        sourceOptions={settings.runtime.starterPack.leadSources.map((source) => ({
+          label: source,
+          value: source.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        }))}
+        stageOptions={pipelineStages.map((stage) => ({ label: stage.label, value: stage.key }))}
       />
     </>
   )

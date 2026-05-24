@@ -10,13 +10,17 @@ export type SidebarSection = {
   items: SidebarItem[]
 }
 
-export const sidebarSections: SidebarSection[] = [
+type SidebarLabelOverrides = Partial<
+  Record<'calendar' | 'contacts' | 'onboarding' | 'pipeline' | 'setup' | 'tickets', string>
+>
+
+export const getSidebarSections = (labels: SidebarLabelOverrides = {}): SidebarSection[] => [
   {
     title: 'Sales',
     items: [
       { id: 'dashboard', label: 'Dashboard', glyph: '◫' },
-      { id: 'contacts', label: 'Contacts', glyph: '◎', count: '482' },
-      { id: 'pipeline', label: 'Pipeline', glyph: '◧', count: '26' },
+      { id: 'contacts', label: labels.contacts || 'Contacts', glyph: '◎', count: '482' },
+      { id: 'pipeline', label: labels.pipeline || 'Pipeline', glyph: '◧', count: '26' },
       { id: 'quotes', label: 'Quotes', glyph: '◨', count: '18' },
       { id: 'contracts', label: 'Contracts', glyph: '◰', count: '12' },
       { id: 'tasks', label: 'Tasks', glyph: '▣', count: '14' },
@@ -25,15 +29,16 @@ export const sidebarSections: SidebarSection[] = [
   {
     title: 'Operations',
     items: [
-      { id: 'calendar', label: 'Appointments', glyph: '◷' },
+      { id: 'calendar', label: labels.calendar || 'Appointments', glyph: '◷' },
       { id: 'invoices', label: 'Invoices', glyph: '◪', count: '7' },
-      { id: 'onboarding', label: 'Onboarding', glyph: '◩', count: '5' },
-      { id: 'tickets', label: 'Support', glyph: '◬', count: '9' },
+      { id: 'onboarding', label: labels.onboarding || 'Onboarding', glyph: '◩', count: '5' },
+      { id: 'tickets', label: labels.tickets || 'Support', glyph: '◬', count: '9' },
     ],
   },
   {
     title: 'Control',
     items: [
+      { id: 'setup', label: labels.setup || 'Get Started', glyph: '◵' },
       { id: 'search', label: 'Search', glyph: '◫' },
       { id: 'analytics', label: 'Analytics', glyph: '◲' },
       { id: 'email', label: 'Email', glyph: '◴' },
@@ -42,6 +47,8 @@ export const sidebarSections: SidebarSection[] = [
     ],
   },
 ]
+
+export const sidebarSections: SidebarSection[] = getSidebarSections()
 
 export const alerts = [
   {
@@ -316,6 +323,221 @@ export const contactTimeline = [
     tone: 'neutral',
   },
 ]
+
+type DashboardVariant = {
+  alerts: typeof alerts
+  contactSpotlight: typeof contactSpotlight
+  metricCards: typeof metricCards
+  onboardingChecklist: typeof onboardingChecklist
+  operationsQueue: typeof operationsQueue
+  todayCalendar: typeof todayCalendar
+}
+
+const dashboardVariants: Record<string, DashboardVariant> = {
+  agency: {
+    alerts,
+    contactSpotlight,
+    metricCards,
+    onboardingChecklist,
+    operationsQueue,
+    todayCalendar,
+  },
+  consulting: {
+    alerts: [
+      {
+        title: 'Strategy proposal waiting on stakeholder sign-off',
+        detail: 'Jordan Group is blocked until the executive sponsor approves the timeline.',
+        tone: 'warm',
+      },
+      {
+        title: 'Two discovery notes still need follow-up',
+        detail: 'New opportunities from the workshop list have not been sequenced yet.',
+        tone: 'cool',
+      },
+      {
+        title: 'Renewal review due this week',
+        detail: 'Blue Summit has a quarterly advisory renewal conversation on Friday.',
+        tone: 'danger',
+      },
+    ],
+    contactSpotlight: {
+      name: 'Jordan Hale',
+      company: 'Blue Summit Advisory',
+      status: 'Expansion ready',
+      health: '94 / 100',
+      invoice: '$8,200 due Jun 6',
+      milestone: 'Quarterly strategy review',
+    },
+    metricCards: [
+      {
+        label: 'Engagement revenue',
+        value: '$241K',
+        trend: '+9.8%',
+        trendTone: 'up',
+        detail: 'Signed and active consulting engagements',
+      },
+      {
+        label: 'Discovery to proposal',
+        value: '44%',
+        trend: '+5.3%',
+        trendTone: 'up',
+        detail: 'Qualified advisory pipeline performance',
+      },
+      {
+        label: 'Avg. days to sign',
+        value: '23',
+        trend: '-3 days',
+        trendTone: 'up',
+        detail: 'Advisory decisions are speeding up',
+      },
+      {
+        label: 'Client response pace',
+        value: '91%',
+        trend: 'Stable',
+        trendTone: 'flat',
+        detail: 'Open requests answered within target window',
+      },
+    ],
+    onboardingChecklist: [
+      { label: 'Discovery recap shared', done: true },
+      { label: 'Scope and milestones approved', done: true },
+      { label: 'Kickoff scheduled', done: false },
+      { label: 'Data request sent', done: true },
+      { label: 'First milestone delivered', done: false },
+    ],
+    operationsQueue: [
+      {
+        glyph: '◷',
+        title: 'Sessions',
+        metric: '8 this week',
+        detail: 'Discovery, advisory checkpoints, and board reviews stay aligned in one calendar.',
+      },
+      {
+        glyph: '◪',
+        title: 'Invoices',
+        metric: '$33K open',
+        detail: 'Retainers and milestone invoices stay tied to active engagements and renewals.',
+      },
+      {
+        glyph: '◩',
+        title: 'Launch plans',
+        metric: '4 active',
+        detail: 'Every signed engagement gets a structured kickoff and milestone checklist.',
+      },
+      {
+        glyph: '◬',
+        title: 'Client requests',
+        metric: '6 open',
+        detail: 'Advisory questions and follow-ups stay visible across account ownership.',
+      },
+    ],
+    todayCalendar: [
+      { time: '09:00', title: 'Discovery call with Harper Group', meta: 'Advisory pipeline' },
+      { time: '11:30', title: 'Quarterly planning session', meta: 'Blue Summit Advisory' },
+      { time: '14:00', title: 'Proposal walk-through', meta: 'Jordan Hale + finance' },
+      { time: '16:00', title: 'Renewal success review', meta: 'Customer success' },
+    ],
+  },
+  photography: {
+    alerts: [
+      {
+        title: 'Two shoots need final payment follow-up',
+        detail: 'Luna Events and Archer Portraits both cross due this week.',
+        tone: 'warm',
+      },
+      {
+        title: 'Gallery delivery still pending',
+        detail: 'North Ridge wedding gallery has edits outstanding before delivery.',
+        tone: 'danger',
+      },
+      {
+        title: 'Weekend booking just moved to confirmed',
+        detail: 'Deposit cleared and the shoot plan is ready to send.',
+        tone: 'cool',
+      },
+    ],
+    contactSpotlight: {
+      name: 'Ava Morgan',
+      company: 'Luna Events',
+      status: 'Shoot booked',
+      health: '90 / 100',
+      invoice: '$2,400 due Jun 2',
+      milestone: 'Mood board approval',
+    },
+    metricCards: [
+      {
+        label: 'Booked revenue',
+        value: '$86K',
+        trend: '+14.2%',
+        trendTone: 'up',
+        detail: 'Confirmed shoots and sessions this quarter',
+      },
+      {
+        label: 'Inquiry to booking',
+        value: '31%',
+        trend: '+3.9%',
+        trendTone: 'up',
+        detail: 'Session conversion from active inquiries',
+      },
+      {
+        label: 'Avg. booking window',
+        value: '12 days',
+        trend: '-1 day',
+        trendTone: 'up',
+        detail: 'Clients are confirming faster',
+      },
+      {
+        label: 'Delivery turnaround',
+        value: '95%',
+        trend: 'Stable',
+        trendTone: 'flat',
+        detail: 'Galleries delivered within target window',
+      },
+    ],
+    onboardingChecklist: [
+      { label: 'Contract signed', done: true },
+      { label: 'Deposit paid', done: true },
+      { label: 'Shoot brief approved', done: false },
+      { label: 'Session scheduled', done: true },
+      { label: 'Delivery timeline confirmed', done: false },
+    ],
+    operationsQueue: [
+      {
+        glyph: '◷',
+        title: 'Sessions',
+        metric: '6 upcoming',
+        detail: 'Shoot days, consults, and reveal meetings are all scheduled from one queue.',
+      },
+      {
+        glyph: '◪',
+        title: 'Invoices',
+        metric: '$12K open',
+        detail: 'Deposits, balances, and delivery payments stay tied to each booked client.',
+      },
+      {
+        glyph: '◩',
+        title: 'Shoot plans',
+        metric: '3 active',
+        detail: 'Each booking keeps deliverables, dates, and prep tasks in one structured plan.',
+      },
+      {
+        glyph: '◬',
+        title: 'Client requests',
+        metric: '4 open',
+        detail: 'Reschedules, gallery questions, and add-on requests stay organized.',
+      },
+    ],
+    todayCalendar: [
+      { time: '08:30', title: 'Engagement shoot prep call', meta: 'Ava Morgan' },
+      { time: '11:00', title: 'Venue walkthrough', meta: 'Luna Events' },
+      { time: '15:00', title: 'Gallery reveal session', meta: 'Archer Portraits' },
+      { time: '18:00', title: 'Sunset session booking', meta: 'Weekend calendar' },
+    ],
+  },
+}
+
+export const getDashboardVariant = (templateKey: string) =>
+  dashboardVariants[templateKey] ?? dashboardVariants.agency
 
 export const dealForecast = [
   {

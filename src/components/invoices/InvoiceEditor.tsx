@@ -2,8 +2,13 @@ import { type FormEvent } from 'react'
 import type { ContactRecord, InvoicePayload } from '../../lib/api'
 
 export type InvoiceFormState = InvoicePayload
+type InvoiceFormDefaults = {
+  notes?: string
+  paymentMethod?: string
+}
 
 type InvoiceEditorProps = {
+  contactLabelSingular?: string
   contacts: ContactRecord[]
   form: InvoiceFormState
   isOpen: boolean
@@ -24,7 +29,10 @@ const statusOptions = [
   { label: 'Cancelled', value: 'cancelled' },
 ]
 
-export function createEmptyInvoiceForm(contactId?: string): InvoiceFormState {
+export function createEmptyInvoiceForm(
+  contactId?: string,
+  defaults: InvoiceFormDefaults = {},
+): InvoiceFormState {
   const today = new Date().toISOString().slice(0, 10)
   return {
     invoiceNumber: '',
@@ -35,12 +43,13 @@ export function createEmptyInvoiceForm(contactId?: string): InvoiceFormState {
     issuedDate: today,
     dueDate: '',
     paidAt: '',
-    paymentMethod: '',
-    notes: '',
+    paymentMethod: defaults.paymentMethod || '',
+    notes: defaults.notes || '',
   }
 }
 
 export function InvoiceEditor({
+  contactLabelSingular = 'Contact',
   contacts,
   form,
   isOpen,
@@ -89,13 +98,13 @@ export function InvoiceEditor({
             </label>
 
             <label className="field">
-              <span>Contact</span>
+              <span>{contactLabelSingular}</span>
               <select
                 required
                 value={form.contactId}
                 onChange={(event) => onChange('contactId', event.target.value)}
               >
-                <option value="">Select a contact</option>
+                <option value="">{`Select a ${contactLabelSingular.toLowerCase()}`}</option>
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}

@@ -3,6 +3,7 @@ import { LoadState } from '../LoadState'
 import { OnboardingEditor, createEmptyOnboardingForm } from './OnboardingEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import { useWorkspaceTemplate } from '../../hooks/useWorkspaceTemplate'
 import {
   api,
   type ContactRecord,
@@ -61,13 +62,16 @@ const buildWorkflowTone = (status?: string) => {
   }
 }
 
-const defaultSteps = (workflow: OnboardingWorkflowRecord) => [
-  { completed: workflow.status === 'completed', title: 'Kickoff confirmed' },
-  { completed: workflow.status === 'active' || workflow.status === 'completed', title: 'Workspace setup' },
-  { completed: false, title: 'Data migration and training' },
-]
+const buildDefaultSteps = (workflow: OnboardingWorkflowRecord, starterSteps: string[]) =>
+  starterSteps.map((title, index) => ({
+    completed:
+      workflow.status === 'completed'
+        ? true
+        : workflow.status === 'active' && index < 2,
+    title,
+  }))
 
-const mapWorkflow = (workflow: OnboardingWorkflowRecord): WorkflowViewModel => ({
+const mapWorkflow = (workflow: OnboardingWorkflowRecord, starterSteps: string[]): WorkflowViewModel => ({
   assignee:
     `${workflow.assignedUser?.firstName || ''} ${workflow.assignedUser?.lastName || ''}`.trim() ||
     workflow.assignedUser?.email ||
@@ -84,7 +88,7 @@ const mapWorkflow = (workflow: OnboardingWorkflowRecord): WorkflowViewModel => (
   name: workflow.name,
   startDate: workflow.startDate,
   status: workflow.status || 'planned',
-  stepCount: workflow.steps?.length || defaultSteps(workflow).length,
+  stepCount: workflow.steps?.length || buildDefaultSteps(workflow, starterSteps).length,
   tone: buildWorkflowTone(workflow.status),
 })
 
@@ -114,6 +118,7 @@ const trimWorkflowPayload = (
 
 export function OnboardingWorkspace() {
   const { token } = useAuth()
+  const { labels, settings } = useWorkspaceTemplate()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -147,7 +152,8 @@ export function OnboardingWorkspace() {
   const contacts = contactsQuery.data?.data ?? []
   const leads = leadsQuery.data?.data ?? []
   const users = (usersQuery.data?.data ?? []) as CurrentUser[]
-  const workflows = (workflowsQuery.data ?? []).map(mapWorkflow)
+  const starterSteps = settings.runtime.starterPack.onboardingSteps
+  const workflows = (workflowsQuery.data ?? []).map((workflow) => mapWorkflow(workflow, starterSteps))
 
   const groupedWorkflows = useMemo(
     () =>
@@ -256,14 +262,14 @@ export function OnboardingWorkspace() {
             <div className="card-heading">
               <div>
                 <p className="eyebrow">Delivery</p>
-                <h3>Customer onboarding workflows</h3>
+                <h3>{labels.onboardingPlural}</h3>
               </div>
               <div className="inline-actions">
                 <span className="pill success">
                   {workflows.length ? `${activeCount} active launches` : 'Launch queue'}
                 </span>
                 <button type="button" className="primary-button" onClick={openCreate}>
-                  + New workflow
+                  + New {labels.onboardingSingular.toLowerCase()}
                 </button>
               </div>
             </div>
@@ -281,7 +287,7 @@ export function OnboardingWorkspace() {
                 leadsQuery.error ||
                 usersQuery.error
               }
-              title="Loading onboarding workflows"
+              title={`Loading ${labels.onboardingPlural.toLowerCase()}`}
             />
 
             <div className="launch-board">
@@ -328,7 +334,7 @@ export function OnboardingWorkspace() {
                         </article>
                       ))
                     ) : (
-                      <div className="empty-card">No workflows in this status.</div>
+                      <div className="empty-card">No {labels.onboardingPlural.toLowerCase()} in this status.</div>
                     )}
                   </div>
                 </section>
@@ -341,8 +347,8 @@ export function OnboardingWorkspace() {
           <article className="surface-card">
             <div className="card-heading">
               <div>
-                <p className="eyebrow">Selected workflow</p>
-                <h3>{selectedWorkflow?.name || 'Workflow detail'}</h3>
+                <p className="eyebrow">Selected {labels.onboardingSingular.toLowerCase()}</p>
+                <h3>{selectedWorkflow?.name || `${labels.onboardingSingular} detail`}</h3>
               </div>
               {selectedWorkflow ? (
                 <button
@@ -350,7 +356,7 @@ export function OnboardingWorkspace() {
                   className="ghost-button compact-button"
                   onClick={() => openEdit(selectedWorkflow.id)}
                 >
-                  Edit workflow
+                  Edit {labels.onboardingSingular.toLowerCase()}
                 </button>
               ) : null}
             </div>
@@ -367,7 +373,7 @@ export function OnboardingWorkspace() {
                     <strong>{selectedWorkflow.assignee}</strong>
                   </div>
                   <div>
-                    <span className="data-label">Contact</span>
+                    <span className="data-label">{labels.contactSingular}</span>
                     <strong>{selectedWorkflow.contactLabel}</strong>
                   </div>
                   <div>
@@ -388,7 +394,7 @@ export function OnboardingWorkspace() {
                   <span className="data-label">Description</span>
                   <p>
                     {selectedWorkflow.description ||
-                      'No launch notes have been added to this workflow yet.'}
+                      `No launch notes have been added to this ${labels.onboardingSingular.toLowerCase()} yet.`}
                   </p>
                 </div>
 
@@ -403,12 +409,14 @@ export function OnboardingWorkspace() {
       </section>
 
       <OnboardingEditor
+        contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}
         isOpen={isEditorOpen}
         isSaving={isSaving}
         leads={leads}
         mode={editorMode}
+        onboardingLabelSingular={labels.onboardingSingular}
         onChange={handleFormChange}
         onClose={closeEditor}
         onSubmit={handleSave}

@@ -1,16 +1,12 @@
 import {
-  alerts,
-  contactSpotlight,
   dashboardSnapshot,
-  metricCards,
-  onboardingChecklist,
-  operationsQueue,
+  getDashboardVariant,
   pipelineColumns,
   revenueSeries,
   teamPulse,
   timelineFeed,
-  todayCalendar,
 } from '../data/crm-data'
+import { useWorkspaceTemplate } from '../hooks/useWorkspaceTemplate'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', {
@@ -20,30 +16,50 @@ const formatCurrency = (value: number) =>
   }).format(value)
 
 export function DashboardPage() {
+  const { settings } = useWorkspaceTemplate()
+  const { dashboard, labels, pipeline } = settings.runtime
+  const dashboardVariant = getDashboardVariant(settings.templateKey)
+  const pipelineSummary = pipelineColumns.map((column, index) => ({
+    ...column,
+    stage: pipeline.stages[index]?.label || column.stage,
+  }))
+  const operationsCards = dashboardVariant.operationsQueue.map((item) => {
+    if (item.title === 'Appointments') {
+      return { ...item, title: labels.appointmentPlural }
+    }
+
+    if (item.title === 'Onboarding') {
+      return { ...item, title: labels.onboardingPlural }
+    }
+
+    if (item.title === 'Support tickets') {
+      return { ...item, title: labels.ticketPlural }
+    }
+
+    return item
+  })
+
   return (
     <>
       <section className="hero-grid">
         <article className="hero-card">
           <div className="hero-copy">
-            <p className="eyebrow">Daily cockpit</p>
-            <h3>Keep pipeline, onboarding, support, and cash flow in one place.</h3>
-            <p>
-              A small-business CRM should help the team move faster, not bury
-              them in tabs. This layout is built around that idea.
-            </p>
+            <p className="eyebrow">{dashboard.focusLabel}</p>
+            <h3>{dashboard.heroTitle}</h3>
+            <p>{dashboard.heroDescription}</p>
           </div>
 
           <div className="hero-stats">
             <div>
-              <span>Pipeline value</span>
+              <span>{dashboard.metrics.pipelineValueLabel}</span>
               <strong>{formatCurrency(dashboardSnapshot.pipelineValue)}</strong>
             </div>
             <div>
-              <span>Tasks due today</span>
+              <span>{dashboard.metrics.tasksDueTodayLabel}</span>
               <strong>{dashboardSnapshot.tasksDueToday}</strong>
             </div>
             <div>
-              <span>Open tickets</span>
+              <span>{dashboard.metrics.openTicketsLabel}</span>
               <strong>{dashboardSnapshot.openTickets}</strong>
             </div>
           </div>
@@ -58,8 +74,8 @@ export function DashboardPage() {
             <span className="pill warm">3 urgent</span>
           </div>
 
-          <div className="alert-list">
-            {alerts.map((alert) => (
+            <div className="alert-list">
+            {dashboardVariant.alerts.map((alert) => (
               <div className="alert-row" key={alert.title}>
                 <span className={`alert-dot ${alert.tone}`} aria-hidden="true" />
                 <div>
@@ -73,7 +89,7 @@ export function DashboardPage() {
       </section>
 
       <section className="metric-grid">
-        {metricCards.map((card) => (
+        {dashboardVariant.metricCards.map((card) => (
           <article className="metric-card" key={card.label}>
             <div className="metric-topline">
               <span>{card.label}</span>
@@ -91,7 +107,7 @@ export function DashboardPage() {
             <div className="card-heading">
               <div>
                 <p className="eyebrow">Revenue motion</p>
-                <h3>Pipeline and forecast</h3>
+                <h3>{labels.pipelinePlural} and forecast</h3>
               </div>
               <span className="pill cool">Forecast confidence 78%</span>
             </div>
@@ -109,7 +125,7 @@ export function DashboardPage() {
               </div>
 
               <div className="pipeline-summary">
-                {pipelineColumns.map((column) => (
+                {pipelineSummary.map((column) => (
                   <div className="pipeline-strip" key={column.stage}>
                     <div>
                       <strong>{column.stage}</strong>
@@ -125,14 +141,14 @@ export function DashboardPage() {
           <article className="surface-card">
             <div className="card-heading">
               <div>
-                <p className="eyebrow">Pipeline board</p>
-                <h3>Deals moving this week</h3>
+                <p className="eyebrow">{labels.pipelinePlural}</p>
+                <h3>{pipeline.boardLabel}</h3>
               </div>
               <span className="pill neutral">Kanban-ready</span>
             </div>
 
             <div className="pipeline-board">
-              {pipelineColumns.map((column) => (
+              {pipelineSummary.map((column) => (
                 <section className="pipeline-column" key={column.stage}>
                   <header>
                     <div>
@@ -166,13 +182,13 @@ export function DashboardPage() {
             <div className="card-heading">
               <div>
                 <p className="eyebrow">Operations hub</p>
-                <h3>Appointments, invoices, onboarding, and support</h3>
+                <h3>{labels.appointmentPlural}, invoices, {labels.onboardingPlural.toLowerCase()}, and {labels.ticketPlural.toLowerCase()}</h3>
               </div>
               <span className="pill success">All teams aligned</span>
             </div>
 
             <div className="operations-grid">
-              {operationsQueue.map((item) => (
+              {operationsCards.map((item) => (
                 <article className="ops-card" key={item.title}>
                   <div className="ops-topline">
                     <span>{item.glyph}</span>
@@ -191,11 +207,11 @@ export function DashboardPage() {
             <div className="card-heading">
               <div>
                 <p className="eyebrow">Calendar</p>
-                <h3>Today&apos;s appointments</h3>
+                <h3>Today&apos;s {labels.appointmentPlural.toLowerCase()}</h3>
               </div>
             </div>
             <div className="agenda-list">
-              {todayCalendar.map((item) => (
+              {dashboardVariant.todayCalendar.map((item) => (
                 <div className="agenda-row" key={`${item.time}-${item.title}`}>
                   <span>{item.time}</span>
                   <div>
@@ -210,28 +226,28 @@ export function DashboardPage() {
           <article className="surface-card">
             <div className="card-heading">
               <div>
-                <p className="eyebrow">Customer view</p>
-                <h3>{contactSpotlight.name}</h3>
+                <p className="eyebrow">{dashboard.spotlightLabel}</p>
+                <h3>{dashboardVariant.contactSpotlight.name}</h3>
               </div>
-              <span className="pill warm">{contactSpotlight.status}</span>
+              <span className="pill warm">{dashboardVariant.contactSpotlight.status}</span>
             </div>
 
             <div className="spotlight-grid">
               <div>
                 <span>Company</span>
-                <strong>{contactSpotlight.company}</strong>
+                <strong>{dashboardVariant.contactSpotlight.company}</strong>
               </div>
               <div>
                 <span>Health score</span>
-                <strong>{contactSpotlight.health}</strong>
+                <strong>{dashboardVariant.contactSpotlight.health}</strong>
               </div>
               <div>
                 <span>Open invoice</span>
-                <strong>{contactSpotlight.invoice}</strong>
+                <strong>{dashboardVariant.contactSpotlight.invoice}</strong>
               </div>
               <div>
                 <span>Next milestone</span>
-                <strong>{contactSpotlight.milestone}</strong>
+                <strong>{dashboardVariant.contactSpotlight.milestone}</strong>
               </div>
             </div>
           </article>
@@ -239,13 +255,13 @@ export function DashboardPage() {
           <article className="surface-card">
             <div className="card-heading">
               <div>
-                <p className="eyebrow">Onboarding</p>
+                <p className="eyebrow">{labels.onboardingPlural}</p>
                 <h3>Launch checklist</h3>
               </div>
             </div>
 
             <div className="checklist">
-              {onboardingChecklist.map((item) => (
+              {dashboardVariant.onboardingChecklist.map((item) => (
                 <label className="check-row" key={item.label}>
                   <input type="checkbox" checked={item.done} readOnly />
                   <span>{item.label}</span>

@@ -9,6 +9,8 @@ import type {
 export type OnboardingFormState = OnboardingWorkflowPayload
 
 type OnboardingEditorProps = {
+  contactLabelSingular?: string
+  onboardingLabelSingular?: string
   contacts: ContactRecord[]
   form: OnboardingFormState
   isOpen: boolean
@@ -47,12 +49,14 @@ export function createEmptyOnboardingForm(
 }
 
 export function OnboardingEditor({
+  contactLabelSingular = 'Contact',
   contacts,
   form,
   isOpen,
   isSaving,
   leads,
   mode,
+  onboardingLabelSingular = 'Onboarding workflow',
   onChange,
   onClose,
   onSubmit,
@@ -72,13 +76,21 @@ export function OnboardingEditor({
     <div className="drawer-backdrop" role="presentation" onClick={onClose}>
       <section
         className="drawer-panel"
-        aria-label={mode === 'create' ? 'Create onboarding workflow' : 'Edit onboarding workflow'}
+        aria-label={
+          mode === 'create'
+            ? `Create ${onboardingLabelSingular.toLowerCase()}`
+            : `Edit ${onboardingLabelSingular.toLowerCase()}`
+        }
         onClick={(event) => event.stopPropagation()}
       >
         <div className="drawer-header">
           <div>
             <p className="eyebrow">{mode === 'create' ? 'New launch plan' : 'Update workflow'}</p>
-            <h3>{mode === 'create' ? 'Create onboarding workflow' : 'Edit onboarding workflow'}</h3>
+            <h3>
+              {mode === 'create'
+                ? `Create ${onboardingLabelSingular.toLowerCase()}`
+                : `Edit ${onboardingLabelSingular.toLowerCase()}`}
+            </h3>
           </div>
           <button type="button" className="icon-button" onClick={onClose}>
             Close
@@ -88,7 +100,7 @@ export function OnboardingEditor({
         <form className="drawer-form" onSubmit={handleSubmit}>
           <div className="form-grid">
             <label className="field field-span-2">
-              <span>Workflow name</span>
+              <span>{`${onboardingLabelSingular} name`}</span>
               <input
                 required
                 value={form.name}
@@ -97,12 +109,12 @@ export function OnboardingEditor({
             </label>
 
             <label className="field">
-              <span>Contact</span>
+              <span>{contactLabelSingular}</span>
               <select
                 value={form.contactId || ''}
                 onChange={(event) => onChange('contactId', event.target.value)}
               >
-                <option value="">No contact</option>
+                <option value="">{`No ${contactLabelSingular.toLowerCase()}`}</option>
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}

@@ -7,6 +7,7 @@ import {
 } from './AppointmentEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import { useWorkspaceTemplate } from '../../hooks/useWorkspaceTemplate'
 import {
   api,
   type AppointmentPayload,
@@ -136,6 +137,7 @@ const trimAppointmentPayload = (form: AppointmentPayload): AppointmentPayload =>
 
 export function AppointmentsWorkspace() {
   const { token } = useAuth()
+  const { labels } = useWorkspaceTemplate()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -285,14 +287,14 @@ export function AppointmentsWorkspace() {
             <div className="card-heading">
               <div>
                 <p className="eyebrow">Scheduling</p>
-                <h3>Appointments and calendar</h3>
+                <h3>{labels.appointmentPlural} and calendar</h3>
               </div>
               <div className="inline-actions">
                 <span className="pill cool">
                   {appointments.length ? `${appointments.length} booked` : 'Schedule queue'}
                 </span>
                 <button type="button" className="primary-button" onClick={openCreate}>
-                  + New appointment
+                  + New {labels.appointmentSingular.toLowerCase()}
                 </button>
               </div>
             </div>
@@ -310,7 +312,7 @@ export function AppointmentsWorkspace() {
                 leadsQuery.error ||
                 usersQuery.error
               }
-              title="Loading appointments"
+              title={`Loading ${labels.appointmentPlural.toLowerCase()}`}
             />
 
             <div className="schedule-board">
@@ -360,7 +362,7 @@ export function AppointmentsWorkspace() {
                   </section>
                 ))
               ) : (
-                <div className="empty-card">No appointments scheduled yet.</div>
+                <div className="empty-card">No {labels.appointmentPlural.toLowerCase()} scheduled yet.</div>
               )}
             </div>
           </article>
@@ -370,8 +372,8 @@ export function AppointmentsWorkspace() {
           <article className="surface-card">
             <div className="card-heading">
               <div>
-                <p className="eyebrow">Selected appointment</p>
-                <h3>{selectedAppointment?.title || 'Appointment detail'}</h3>
+                <p className="eyebrow">Selected {labels.appointmentSingular.toLowerCase()}</p>
+                <h3>{selectedAppointment?.title || `${labels.appointmentSingular} detail`}</h3>
               </div>
               {selectedAppointment ? (
                 <button
@@ -379,7 +381,7 @@ export function AppointmentsWorkspace() {
                   className="ghost-button compact-button"
                   onClick={() => openEdit(selectedAppointment.id)}
                 >
-                  Edit appointment
+                  Edit {labels.appointmentSingular.toLowerCase()}
                 </button>
               ) : null}
             </div>
@@ -404,7 +406,7 @@ export function AppointmentsWorkspace() {
                     <strong>{formatTitleCase(selectedAppointment.type)}</strong>
                   </div>
                   <div>
-                    <span className="data-label">Contact</span>
+                    <span className="data-label">{labels.contactSingular}</span>
                     <strong>{selectedAppointment.contactLabel}</strong>
                   </div>
                   <div>
@@ -425,7 +427,7 @@ export function AppointmentsWorkspace() {
                   <span className="data-label">Description</span>
                   <p>
                     {selectedAppointment.description ||
-                      'No additional notes have been added to this appointment yet.'}
+                      `No additional notes have been added to this ${labels.appointmentSingular.toLowerCase()} yet.`}
                   </p>
                 </div>
               </div>
@@ -435,6 +437,7 @@ export function AppointmentsWorkspace() {
       </section>
 
       <AppointmentEditor
+        contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}
         isOpen={isEditorOpen}

@@ -4,6 +4,7 @@ import { LoadState } from '../LoadState'
 import { TicketEditor, createEmptyTicketForm } from './TicketEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import { useWorkspaceTemplate } from '../../hooks/useWorkspaceTemplate'
 import {
   navigateToRoute,
   readHashParam,
@@ -114,6 +115,7 @@ const trimTicketPayload = (form: TicketPayload): TicketPayload => ({
 
 export function TicketsWorkspace() {
   const { token } = useAuth()
+  const { labels } = useWorkspaceTemplate()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -267,15 +269,15 @@ export function TicketsWorkspace() {
           <article className="surface-card">
             <div className="card-heading">
               <div>
-                <p className="eyebrow">Support</p>
-                <h3>Service tickets and escalations</h3>
+                <p className="eyebrow">{labels.ticketPlural}</p>
+                <h3>{labels.ticketPlural} and escalations</h3>
               </div>
               <div className="inline-actions">
                 <span className="pill warm">
                   {tickets.length ? `${urgentCount} urgent` : 'Ticket queue'}
                 </span>
                 <button type="button" className="primary-button" onClick={openCreate}>
-                  + New ticket
+                  + New {labels.ticketSingular.toLowerCase()}
                 </button>
               </div>
             </div>
@@ -283,7 +285,7 @@ export function TicketsWorkspace() {
             <LoadState
               loading={ticketsQuery.loading || contactsQuery.loading || usersQuery.loading}
               error={ticketsQuery.error || contactsQuery.error || usersQuery.error}
-              title="Loading tickets"
+              title={`Loading ${labels.ticketPlural.toLowerCase()}`}
             />
 
             {tickets.length ? (
@@ -331,7 +333,7 @@ export function TicketsWorkspace() {
                           </article>
                         ))
                       ) : (
-                        <div className="empty-card">No tickets in this status.</div>
+                        <div className="empty-card">No {labels.ticketPlural.toLowerCase()} in this status.</div>
                       )}
                     </div>
                   </section>
@@ -339,10 +341,10 @@ export function TicketsWorkspace() {
               </div>
             ) : (
               <EmptyState
-                actionLabel="Create ticket"
+                actionLabel={`Create ${labels.ticketSingular.toLowerCase()}`}
                 description="Capture customer issues, assign owners, and keep support work visible alongside the rest of the CRM."
                 onAction={openCreate}
-                title="No tickets yet"
+                title={`No ${labels.ticketPlural.toLowerCase()} yet`}
               />
             )}
           </article>
@@ -352,8 +354,8 @@ export function TicketsWorkspace() {
           <article className="surface-card">
             <div className="card-heading">
               <div>
-                <p className="eyebrow">Selected ticket</p>
-                <h3>{selectedTicket?.subject || 'Ticket detail'}</h3>
+                <p className="eyebrow">Selected {labels.ticketSingular.toLowerCase()}</p>
+                <h3>{selectedTicket?.subject || `${labels.ticketSingular} detail`}</h3>
               </div>
               {selectedTicket ? (
                 <button
@@ -361,7 +363,7 @@ export function TicketsWorkspace() {
                   className="ghost-button compact-button"
                   onClick={() => openEdit(selectedTicket.id)}
                 >
-                  Edit ticket
+                  Edit {labels.ticketSingular.toLowerCase()}
                 </button>
               ) : null}
             </div>
@@ -386,7 +388,7 @@ export function TicketsWorkspace() {
                     <strong>{formatTitleCase(selectedTicket.source)}</strong>
                   </div>
                   <div>
-                    <span className="data-label">Customer</span>
+                    <span className="data-label">{labels.contactSingular}</span>
                     <strong>{selectedTicket.contactLabel}</strong>
                   </div>
                   <div>
@@ -411,14 +413,14 @@ export function TicketsWorkspace() {
                     className="ghost-button compact-button context-link-button"
                     onClick={() => navigateToRoute('contacts', { selected: selectedTicket.contactId })}
                   >
-                    Open contact
+                    {`Open ${labels.contactSingular.toLowerCase()}`}
                   </button>
                 </div>
               </div>
             ) : (
               <EmptyState
-                description="Select a ticket to review the issue, assignee, and linked customer record."
-                title="No ticket selected"
+                description={`Select a ${labels.ticketSingular.toLowerCase()} to review the issue, assignee, and linked customer record.`}
+                title={`No ${labels.ticketSingular.toLowerCase()} selected`}
               />
             )}
           </article>
@@ -426,6 +428,7 @@ export function TicketsWorkspace() {
       </section>
 
       <TicketEditor
+        contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}
         isOpen={isEditorOpen}
@@ -435,6 +438,7 @@ export function TicketsWorkspace() {
         onClose={closeEditor}
         onSubmit={handleSave}
         saveError={saveError}
+        ticketLabelSingular={labels.ticketSingular}
         users={users}
       />
     </>

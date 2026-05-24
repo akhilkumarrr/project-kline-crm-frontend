@@ -29,6 +29,101 @@ export type CurrentUser = {
   permissions?: string[] | null
 }
 
+export type WorkspaceTemplateSummary = {
+  key: string
+  industryLabel: string
+  description: string
+}
+
+export type WorkspaceTemplateRuntime = {
+  key: string
+  industryLabel: string
+  description: string
+  workspaceName: string
+  labels: {
+    appointmentPlural: string
+    appointmentSingular: string
+    contactPlural: string
+    contactSingular: string
+    onboardingPlural: string
+    onboardingSingular: string
+    pipelinePlural: string
+    ticketPlural: string
+    ticketSingular: string
+  }
+  dashboard: {
+    focusLabel: string
+    heroDescription: string
+    heroTitle: string
+    metrics: {
+      openTicketsLabel: string
+      pipelineValueLabel: string
+      tasksDueTodayLabel: string
+    }
+    spotlightLabel: string
+  }
+  pipeline: {
+    boardLabel: string
+    stages: Array<{
+      key: string
+      label: string
+    }>
+  }
+  starterPack: {
+    documents: {
+      contractSummary: string
+      invoiceFooter: string
+      quoteIntro: string
+    }
+    emailTemplates: Array<{
+      body: string
+      description: string
+      name: string
+      subject: string
+      templateType: string
+      variables?: Array<{ name: string; example: string; description?: string }>
+    }>
+    leadSources: string[]
+    onboardingSteps: string[]
+    quickStartChecklist: string[]
+    taskCategories: string[]
+  }
+  theme: {
+    recommendedTheme: string
+    recommendedTileSize: string
+  }
+}
+
+export type WorkspaceSettingsRecord = {
+  id: string
+  templateKey: string
+  workspaceName: string
+  availableTemplates: WorkspaceTemplateSummary[]
+  baseRuntime: WorkspaceTemplateRuntime
+  labelOverrides?: Record<string, string> | null
+  dashboardOverrides?: Record<string, unknown> | null
+  pipelineOverrides?: Record<string, unknown> | null
+  starterPackOverrides?: Record<string, unknown> | null
+  themeOverrides?: Record<string, unknown> | null
+  runtime: WorkspaceTemplateRuntime
+}
+
+export type WorkspaceSettingsPayload = {
+  workspaceName?: string
+  templateKey?: string
+  labelOverrides?: Record<string, string>
+  dashboardOverrides?: Record<string, unknown>
+  pipelineOverrides?: Record<string, unknown>
+  starterPackOverrides?: Record<string, unknown>
+  themeOverrides?: Record<string, unknown>
+}
+
+export type WorkspaceStarterPackResult = {
+  createdTemplates: number
+  skippedTemplates: number
+  templateNames: string[]
+}
+
 export type PaginatedResponse<T> = {
   data: T[]
   total: number
@@ -580,6 +675,22 @@ export const api = {
   },
   getProfile(token: string) {
     return request<CurrentUser>('/auth/me', { token })
+  },
+  getWorkspaceSettings(token: string) {
+    return request<WorkspaceSettingsRecord>('/workspace-settings', { token })
+  },
+  updateWorkspaceSettings(token: string, payload: WorkspaceSettingsPayload) {
+    return request<WorkspaceSettingsRecord>('/workspace-settings', {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  applyWorkspaceStarterPack(token: string) {
+    return request<WorkspaceStarterPackResult>('/workspace-settings/starter-pack', {
+      method: 'POST',
+      token,
+    })
   },
   getContacts(token: string, page = 1, limit = 20) {
     return request<PaginatedResponse<ContactRecord>>(`/contacts?page=${page}&limit=${limit}`, {

@@ -5,6 +5,7 @@ import { LoadState } from '../LoadState'
 import { ContractEditor, createEmptyContractForm, type ContractFormState } from './ContractEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import { useWorkspaceTemplate } from '../../hooks/useWorkspaceTemplate'
 import {
   navigateToRoute,
   readHashParam,
@@ -116,6 +117,7 @@ const sanitizeContractPayload = (form: ContractFormState): ContractPayload => ({
 
 export function ContractsWorkspace() {
   const { token } = useAuth()
+  const { labels, settings } = useWorkspaceTemplate()
   const [refreshKey, setRefreshKey] = useState(0)
   const contractsQuery = useApiQuery(
     Boolean(token),
@@ -185,6 +187,7 @@ export function ContractsWorkspace() {
   )
 
   const totalValue = contractViews.reduce((sum, contract) => sum + contract.value, 0)
+  const documentDefaults = settings.runtime.starterPack.documents
 
   const refreshContracts = async () => {
     setRefreshKey((current) => current + 1)
@@ -192,7 +195,11 @@ export function ContractsWorkspace() {
 
   const openCreate = () => {
     setEditorMode('create')
-    setForm(createEmptyContractForm(contacts[0]?.id))
+    setForm(
+      createEmptyContractForm(contacts[0]?.id, {
+        description: documentDefaults.contractSummary,
+      }),
+    )
     setSaveError(null)
     setIsEditorOpen(true)
   }
@@ -366,7 +373,7 @@ export function ContractsWorkspace() {
               <div className="detail-stack">
                 <div className="detail-grid">
                   <div>
-                    <span className="data-label">Contact</span>
+                    <span className="data-label">{labels.contactSingular}</span>
                     <strong>{selectedContract.contactLabel}</strong>
                   </div>
                   <div>
@@ -399,6 +406,11 @@ export function ContractsWorkspace() {
                 <div className="detail-note">
                   <span className="data-label">Payment terms</span>
                   <p>{selectedContract.paymentTerms || 'Payment terms not specified yet.'}</p>
+                </div>
+
+                <div className="detail-note">
+                  <span className="data-label">Summary guidance</span>
+                  <p>{documentDefaults.contractSummary}</p>
                 </div>
 
                 <div className="detail-note">
@@ -435,6 +447,7 @@ export function ContractsWorkspace() {
       </section>
 
       <ContractEditor
+        contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}
         isOpen={isEditorOpen}

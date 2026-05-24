@@ -5,6 +5,7 @@ import { LoadState } from '../LoadState'
 import { QuoteEditor, createEmptyQuoteForm, type QuoteFormState } from './QuoteEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import { useWorkspaceTemplate } from '../../hooks/useWorkspaceTemplate'
 import {
   navigateToRoute,
   readHashParam,
@@ -164,6 +165,7 @@ const sanitizeQuotePayload = (form: QuoteFormState): QuotePayload => {
 
 export function QuotesWorkspace() {
   const { token } = useAuth()
+  const { labels, settings } = useWorkspaceTemplate()
   const [refreshKey, setRefreshKey] = useState(0)
   const quotesQuery = useApiQuery(
     Boolean(token),
@@ -231,6 +233,7 @@ export function QuotesWorkspace() {
   )
 
   const totalPipeline = quoteViews.reduce((sum, quote) => sum + quote.total, 0)
+  const quoteDefaults = settings.runtime.starterPack.documents
 
   const refreshQuotes = async () => {
     setRefreshKey((current) => current + 1)
@@ -238,7 +241,11 @@ export function QuotesWorkspace() {
 
   const openCreate = () => {
     setEditorMode('create')
-    setForm(createEmptyQuoteForm(contacts[0]?.id))
+    setForm(
+      createEmptyQuoteForm(contacts[0]?.id, {
+        description: quoteDefaults.quoteIntro,
+      }),
+    )
     setSaveError(null)
     setIsEditorOpen(true)
   }
@@ -496,7 +503,7 @@ export function QuotesWorkspace() {
               <div className="detail-stack">
                 <div className="detail-grid">
                   <div>
-                    <span className="data-label">Contact</span>
+                    <span className="data-label">{labels.contactSingular}</span>
                     <strong>{selectedQuote.contactLabel}</strong>
                   </div>
                   <div>
@@ -557,6 +564,11 @@ export function QuotesWorkspace() {
                 </div>
 
                 <div className="detail-note">
+                  <span className="data-label">Proposal framing</span>
+                  <p>{quoteDefaults.quoteIntro}</p>
+                </div>
+
+                <div className="detail-note">
                   <span className="data-label">Notes</span>
                   <p>{selectedQuote.notes || 'No notes added to this quote yet.'}</p>
                 </div>
@@ -590,6 +602,7 @@ export function QuotesWorkspace() {
       </section>
 
       <QuoteEditor
+        contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}
         isOpen={isEditorOpen}

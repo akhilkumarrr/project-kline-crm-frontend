@@ -9,6 +9,7 @@ import type {
 export type AppointmentFormState = AppointmentPayload
 
 type AppointmentEditorProps = {
+  contactLabelSingular?: string
   contacts: ContactRecord[]
   form: AppointmentFormState
   isOpen: boolean
@@ -81,6 +82,7 @@ export function normalizeAppointmentForm(
 }
 
 export function AppointmentEditor({
+  contactLabelSingular = 'Contact',
   contacts,
   form,
   isOpen,
@@ -199,12 +201,12 @@ export function AppointmentEditor({
             </label>
 
             <label className="field">
-              <span>Contact</span>
+              <span>{contactLabelSingular}</span>
               <select
                 value={form.contactId || ''}
                 onChange={(event) => onChange('contactId', event.target.value)}
               >
-                <option value="">No contact</option>
+                <option value="">{`No ${contactLabelSingular.toLowerCase()}`}</option>
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}
