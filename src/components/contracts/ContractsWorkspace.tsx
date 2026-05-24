@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '../EmptyState'
 import { EntityEmailPanel } from '../email/EntityEmailPanel'
+import { RelatedFilesPanel } from '../files/RelatedFilesPanel'
 import { LoadState } from '../LoadState'
 import { ContractEditor, createEmptyContractForm, type ContractFormState } from './ContractEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
@@ -14,6 +15,7 @@ import {
 } from '../../lib/navigation'
 import {
   api,
+  type CompanyRecord,
   type ContractPayload,
   type ContractRecord,
 } from '../../lib/api'
@@ -95,6 +97,7 @@ const toFormState = (contract: ContractRecord): ContractFormState => ({
   title: contract.title || '',
   contractNumber: contract.contractNumber || '',
   contactId: contract.contactId,
+  companyId: contract.companyId || '',
   description: contract.description || '',
   startDate: contract.startDate ? String(contract.startDate).slice(0, 10) : '',
   endDate: contract.endDate ? String(contract.endDate).slice(0, 10) : '',
@@ -107,6 +110,7 @@ const sanitizeContractPayload = (form: ContractFormState): ContractPayload => ({
   title: form.title.trim(),
   contractNumber: form.contractNumber.trim(),
   contactId: form.contactId,
+  companyId: form.companyId?.trim() || undefined,
   description: form.description?.trim() || undefined,
   startDate: form.startDate,
   endDate: form.endDate,
@@ -128,9 +132,14 @@ export function ContractsWorkspace() {
     token,
     refreshKey,
   ])
+  const companiesQuery = useApiQuery(Boolean(token), () => api.getCompanies(token!, 1, 200), [
+    token,
+    refreshKey,
+  ])
 
   const contracts = contractsQuery.data?.data ?? []
   const contacts = contactsQuery.data?.data ?? []
+  const companies = companiesQuery.data?.data ?? []
 
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
   const [editorMode, setEditorMode] = useState<'create' | 'edit'>('create')
@@ -219,6 +228,12 @@ export function ContractsWorkspace() {
   const handleFieldChange = (field: keyof ContractFormState, value: string) => {
     setForm((current) => ({
       ...current,
+      ...(field === 'contactId'
+        ? {
+            companyId:
+              contacts.find((contact) => contact.id === value)?.companyId || current.companyId || '',
+          }
+        : {}),
       [field]: field === 'value' ? Number(value || 0) : value,
     }))
   }
@@ -435,6 +450,15 @@ export function ContractsWorkspace() {
                   entityLogType="CONTRACT"
                   heading="Send contract by email"
                 />
+
+                <RelatedFilesPanel
+                  title="Contract files"
+                  relatedType="contract"
+                  relatedId={selectedContract.id}
+                  refreshKey={refreshKey}
+                  emptyMessage="No files or generated PDFs are linked to this contract yet."
+                  onGenerate={() => api.generateContractPdf(token!, selectedContract.id)}
+                />
               </div>
             ) : (
               <EmptyState
@@ -447,6 +471,7 @@ export function ContractsWorkspace() {
       </section>
 
       <ContractEditor
+        companies={companies as CompanyRecord[]}
         contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}

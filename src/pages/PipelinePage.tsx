@@ -135,6 +135,7 @@ const toFormState = (lead: LeadRecord): LeadPayload => ({
   title: lead.title || '',
   description: lead.description || '',
   contactId: lead.contactId || '',
+  companyId: lead.companyId || '',
   stage: lead.stage || 'new',
   source: lead.source || 'other',
   value: Number(lead.value || 0),
@@ -183,9 +184,13 @@ export function PipelinePage() {
     () => api.getContacts(token!, 1, 100),
     [token],
   )
+  const companiesQuery = useApiQuery(Boolean(token), () => api.getCompanies(token!, 1, 200), [
+    token,
+  ])
 
   const liveLeads = leadsQuery.data?.data ?? []
   const contacts = contactsQuery.data?.data ?? []
+  const companies = companiesQuery.data?.data ?? []
   const liveDeals = liveLeads.map(mapLeadRecord)
   const stageDefinitions = settings.runtime.pipeline.stages
   const stageOrder = stageDefinitions.map((stage) => stage.key)
@@ -605,6 +610,7 @@ export function PipelinePage() {
 
       <LeadEditor
         contactLabelSingular={labels.contactSingular}
+        companies={companies}
         contacts={contacts}
         form={form}
         isOpen={isEditorOpen}

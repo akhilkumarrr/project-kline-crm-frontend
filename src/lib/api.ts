@@ -4,6 +4,7 @@ const TOKEN_STORAGE_KEY = 'project-kline-crm-token'
 type RequestOptions = {
   body?: unknown
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  isFormData?: boolean
   token?: string | null
 }
 
@@ -132,6 +133,53 @@ export type PaginatedResponse<T> = {
   pages: number
 }
 
+export type CompanyRecord = {
+  id: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  phone?: string | null
+  email?: string | null
+  addressLine1?: string | null
+  addressLine2?: string | null
+  city?: string | null
+  state?: string | null
+  zipCode?: string | null
+  country?: string | null
+  status?: string
+  notes?: string | null
+  ownerId?: string
+  owner?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  summary?: {
+    contacts?: number
+    leads?: number
+    invoiceValue?: number
+  }
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type CompanyPayload = {
+  name: string
+  website?: string
+  industry?: string
+  phone?: string
+  email?: string
+  addressLine1?: string
+  addressLine2?: string
+  city?: string
+  state?: string
+  zipCode?: string
+  country?: string
+  status?: string
+  notes?: string
+}
+
 export type ContactRecord = {
   id: string
   firstName: string
@@ -139,6 +187,8 @@ export type ContactRecord = {
   email: string
   phone?: string | null
   company?: string | null
+  companyId?: string | null
+  companyRecord?: CompanyRecord | null
   jobTitle?: string | null
   type?: string
   status?: string
@@ -165,6 +215,7 @@ export type ContactPayload = {
   email: string
   phone?: string
   company?: string
+  companyId?: string
   jobTitle?: string
   type?: string
   status?: string
@@ -182,6 +233,8 @@ export type LeadRecord = {
   description?: string | null
   contactId: string
   contact?: ContactRecord | null
+  companyId?: string | null
+  company?: CompanyRecord | null
   stage?: string
   source?: string
   value?: number | string | null
@@ -203,6 +256,7 @@ export type LeadPayload = {
   title: string
   description?: string
   contactId: string
+  companyId?: string
   stage?: string
   source?: string
   value?: number
@@ -224,6 +278,8 @@ export type QuoteRecord = {
   quoteNumber: string
   contactId: string
   contact?: ContactRecord | null
+  companyId?: string | null
+  company?: CompanyRecord | null
   status?: string
   description?: string | null
   lineItems?: QuoteLineItem[] | null
@@ -249,6 +305,7 @@ export type QuoteRecord = {
 export type QuotePayload = {
   quoteNumber: string
   contactId: string
+  companyId?: string
   description?: string
   lineItems: QuoteLineItem[]
   subtotal: number
@@ -265,6 +322,8 @@ export type ContractRecord = {
   contractNumber: string
   contactId: string
   contact?: ContactRecord | null
+  companyId?: string | null
+  company?: CompanyRecord | null
   status?: string
   description?: string | null
   startDate?: string | null
@@ -281,6 +340,7 @@ export type ContractPayload = {
   title: string
   contractNumber: string
   contactId: string
+  companyId?: string
   status?: string
   description?: string
   startDate: string
@@ -343,6 +403,8 @@ export type AppointmentRecord = {
   location?: string | null
   contactId?: string | null
   contact?: ContactRecord | null
+  companyId?: string | null
+  company?: CompanyRecord | null
   leadId?: string | null
   lead?: LeadRecord | null
   ownerId?: string
@@ -374,6 +436,7 @@ export type AppointmentPayload = {
   endAt: string
   location?: string
   contactId?: string
+  companyId?: string
   leadId?: string
   assignedTo?: string
 }
@@ -383,6 +446,8 @@ export type InvoiceRecord = {
   invoiceNumber: string
   contactId: string
   contact?: ContactRecord | null
+  companyId?: string | null
+  company?: CompanyRecord | null
   quoteId?: string | null
   contractId?: string | null
   status?: string
@@ -402,6 +467,7 @@ export type InvoiceRecord = {
 export type InvoicePayload = {
   invoiceNumber: string
   contactId: string
+  companyId?: string
   quoteId?: string
   contractId?: string
   status?: string
@@ -421,6 +487,8 @@ export type TicketRecord = {
   description: string
   contactId: string
   contact?: ContactRecord | null
+  companyId?: string | null
+  company?: CompanyRecord | null
   ownerId?: string
   assignedTo?: string | null
   assignedUser?: {
@@ -442,6 +510,7 @@ export type TicketPayload = {
   subject: string
   description: string
   contactId: string
+  companyId?: string
   assignedTo?: string
   status?: string
   priority?: string
@@ -454,6 +523,8 @@ export type OnboardingWorkflowRecord = {
   description?: string | null
   contactId?: string | null
   contact?: ContactRecord | null
+  companyId?: string | null
+  company?: CompanyRecord | null
   leadId?: string | null
   lead?: LeadRecord | null
   ownerId?: string
@@ -485,6 +556,7 @@ export type OnboardingWorkflowPayload = {
   name: string
   description?: string
   contactId?: string
+  companyId?: string
   leadId?: string
   assignedTo?: string
   status?: string
@@ -585,6 +657,33 @@ export type ActivityRecord = {
   createdAt?: string
 }
 
+export type FileRecord = {
+  id: string
+  originalName: string
+  storedName: string
+  mimeType: string
+  size: number
+  relatedType: string
+  relatedId: string
+  uploadedById: string
+  generated?: boolean
+  metadata?: Record<string, unknown> | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type NotificationRecord = {
+  id: string
+  userId: string
+  type: string
+  title: string
+  message: string
+  isRead: boolean
+  readAt?: string | null
+  metadata?: Record<string, unknown> | null
+  createdAt?: string
+}
+
 export type AddNotePayload = {
   note: string
   metadata?: Record<string, unknown>
@@ -607,10 +706,14 @@ async function request<T>(path: string, options: RequestOptions = {}) {
     response = await fetch(`${apiBaseUrl}${path}`, {
       method: options.method ?? 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        ...(options.isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
       },
-      body: options.body ? JSON.stringify(options.body) : undefined,
+      body: options.body
+        ? options.isFormData
+          ? (options.body as BodyInit)
+          : JSON.stringify(options.body)
+        : undefined,
     })
   } catch (error) {
     const message =
@@ -678,6 +781,115 @@ export const api = {
   },
   getWorkspaceSettings(token: string) {
     return request<WorkspaceSettingsRecord>('/workspace-settings', { token })
+  },
+  getNotifications(token: string) {
+    return request<{ data: NotificationRecord[]; unread: number }>('/notifications', { token })
+  },
+  markNotificationRead(token: string, notificationId: string) {
+    return request<NotificationRecord>(`/notifications/${notificationId}/read`, {
+      method: 'PUT',
+      token,
+    })
+  },
+  markAllNotificationsRead(token: string) {
+    return request<{ updated: number }>('/notifications/read-all', {
+      method: 'PUT',
+      token,
+    })
+  },
+  getCompanies(token: string, page = 1, limit = 20, query?: string) {
+    return request<PaginatedResponse<CompanyRecord>>(
+      `/companies${buildQuery({ page, limit, query })}`,
+      { token },
+    )
+  },
+  getCompany(token: string, companyId: string) {
+    return request<CompanyRecord>(`/companies/${companyId}`, { token })
+  },
+  createCompany(token: string, payload: CompanyPayload) {
+    return request<CompanyRecord>('/companies', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateCompany(token: string, companyId: string, payload: Partial<CompanyPayload>) {
+    return request<CompanyRecord>(`/companies/${companyId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  getCompanyContacts(token: string, companyId: string) {
+    return request<ContactRecord[]>(`/companies/${companyId}/contacts`, { token })
+  },
+  getCompanyLeads(token: string, companyId: string) {
+    return request<LeadRecord[]>(`/companies/${companyId}/leads`, { token })
+  },
+  getCompanyInvoices(token: string, companyId: string) {
+    return request<InvoiceRecord[]>(`/companies/${companyId}/invoices`, { token })
+  },
+  getCompanyTickets(token: string, companyId: string) {
+    return request<TicketRecord[]>(`/companies/${companyId}/tickets`, { token })
+  },
+  getCompanyTimeline(token: string, companyId: string) {
+    return request<ActivityRecord[]>(`/companies/${companyId}/timeline`, { token })
+  },
+  getContactFiles(token: string, contactId: string) {
+    return request<FileRecord[]>(`/contacts/${contactId}/files`, { token })
+  },
+  getCompanyFiles(token: string, companyId: string) {
+    return request<FileRecord[]>(`/companies/${companyId}/files`, { token })
+  },
+  getRelatedFiles(token: string, relatedType: string, relatedId: string) {
+    return request<FileRecord[]>(`/files/related/${relatedType}/${relatedId}`, { token })
+  },
+  uploadFile(token: string, payload: { file: File; relatedType: string; relatedId: string; note?: string }) {
+    const form = new FormData()
+    form.append('file', payload.file)
+    form.append('relatedType', payload.relatedType)
+    form.append('relatedId', payload.relatedId)
+    if (payload.note) {
+      form.append('note', payload.note)
+    }
+
+    return request<FileRecord>('/files/upload', {
+      method: 'POST',
+      body: form,
+      isFormData: true,
+      token,
+    })
+  },
+  generateQuotePdf(token: string, quoteId: string) {
+    return request<FileRecord>(`/quotes/${quoteId}/generate-pdf`, {
+      method: 'POST',
+      token,
+    })
+  },
+  generateContractPdf(token: string, contractId: string) {
+    return request<FileRecord>(`/contracts/${contractId}/generate-pdf`, {
+      method: 'POST',
+      token,
+    })
+  },
+  async downloadFile(token: string, fileId: string) {
+    const response = await fetch(`${apiBaseUrl}/files/${fileId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`)
+    }
+
+    const blob = await response.blob()
+    const disposition = response.headers.get('content-disposition') || ''
+    const matchedName = disposition.match(/filename="?([^"]+)"?/)
+    return {
+      blob,
+      fileName: matchedName?.[1] || `download-${fileId}`,
+    }
   },
   updateWorkspaceSettings(token: string, payload: WorkspaceSettingsPayload) {
     return request<WorkspaceSettingsRecord>('/workspace-settings', {

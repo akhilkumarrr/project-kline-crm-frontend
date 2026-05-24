@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ActivityTimeline } from '../components/activities/ActivityTimeline'
 import { EmptyState } from '../components/EmptyState'
+import { RelatedFilesPanel } from '../components/files/RelatedFilesPanel'
 import { NoteComposer } from '../components/activities/NoteComposer'
 import { ContactEditor, createEmptyContactForm } from '../components/contacts/ContactEditor'
 import { LoadState } from '../components/LoadState'
@@ -70,6 +71,7 @@ const toFormState = (contact: ContactRecord): ContactPayload => ({
   email: contact.email || '',
   phone: contact.phone || '',
   company: contact.company || '',
+  companyId: contact.companyId || '',
   jobTitle: contact.jobTitle || '',
   type: contact.type || 'individual',
   status: contact.status || 'active',
@@ -104,7 +106,13 @@ export function ContactsPage() {
     [token, refreshKey],
   )
 
+  const companiesQuery = useApiQuery(Boolean(token), () => api.getCompanies(token!, 1, 200), [
+    token,
+    refreshKey,
+  ])
+
   const liveContacts = data?.data ?? []
+  const companies = companiesQuery.data?.data ?? []
   const contacts = liveContacts.length
     ? liveContacts.map(mapContactRecord)
     : mockContacts
@@ -455,10 +463,21 @@ export function ContactsPage() {
               <div className="empty-card">Live communications appear here once this contact has tracked activity.</div>
             )}
           </article>
+
+          {isLiveSelectedContact ? (
+            <RelatedFilesPanel
+              title="Contact files"
+              relatedType="contact"
+              relatedId={selectedContactId!}
+              refreshKey={refreshKey}
+              emptyMessage="No files have been attached to this contact yet."
+            />
+          ) : null}
         </div>
       </section>
 
       <ContactEditor
+        companies={companies}
         form={form}
         isOpen={isEditorOpen}
         isSaving={isSaving}

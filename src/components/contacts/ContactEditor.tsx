@@ -1,9 +1,10 @@
 import { type FormEvent } from 'react'
-import type { ContactPayload } from '../../lib/api'
+import type { CompanyRecord, ContactPayload } from '../../lib/api'
 
 export type ContactFormState = ContactPayload
 
 type ContactEditorProps = {
+  companies?: CompanyRecord[]
   form: ContactFormState
   isOpen: boolean
   isSaving: boolean
@@ -32,6 +33,7 @@ export function createEmptyContactForm(): ContactFormState {
     email: '',
     phone: '',
     company: '',
+    companyId: '',
     jobTitle: '',
     type: 'individual',
     status: 'active',
@@ -45,6 +47,7 @@ export function createEmptyContactForm(): ContactFormState {
 }
 
 export function ContactEditor({
+  companies = [],
   form,
   isOpen,
   isSaving,
@@ -121,6 +124,18 @@ export function ContactEditor({
                 value={form.company || ''}
                 onChange={(event) => onChange('company', event.target.value)}
               />
+            </label>
+
+            <label className="field">
+              <span>Linked account</span>
+              <select value={form.companyId || ''} onChange={(event) => onChange('companyId', event.target.value)}>
+                <option value="">No linked account</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="field">

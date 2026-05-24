@@ -271,6 +271,7 @@ export function WorkspaceTemplateProvider({ children }: WorkspaceTemplateProvide
       updateSettings,
       viewLabels: {
         calendar: labels.appointmentPlural,
+        companies: 'Companies',
         contacts: labels.contactPlural,
         onboarding: labels.onboardingPlural,
         pipeline: labels.pipelinePlural,

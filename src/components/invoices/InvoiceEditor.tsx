@@ -1,5 +1,5 @@
 import { type FormEvent } from 'react'
-import type { ContactRecord, InvoicePayload } from '../../lib/api'
+import type { CompanyRecord, ContactRecord, InvoicePayload } from '../../lib/api'
 
 export type InvoiceFormState = InvoicePayload
 type InvoiceFormDefaults = {
@@ -8,6 +8,7 @@ type InvoiceFormDefaults = {
 }
 
 type InvoiceEditorProps = {
+  companies?: CompanyRecord[]
   contactLabelSingular?: string
   contacts: ContactRecord[]
   form: InvoiceFormState
@@ -37,6 +38,7 @@ export function createEmptyInvoiceForm(
   return {
     invoiceNumber: '',
     contactId: contactId || '',
+    companyId: '',
     status: 'draft',
     totalAmount: 0,
     paidAmount: 0,
@@ -49,6 +51,7 @@ export function createEmptyInvoiceForm(
 }
 
 export function InvoiceEditor({
+  companies = [],
   contactLabelSingular = 'Contact',
   contacts,
   form,
@@ -108,6 +111,18 @@ export function InvoiceEditor({
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Linked account</span>
+              <select value={form.companyId || ''} onChange={(event) => onChange('companyId', event.target.value)}>
+                <option value="">No linked account</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
                   </option>
                 ))}
               </select>

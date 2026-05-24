@@ -13,6 +13,7 @@ import {
 } from '../../lib/navigation'
 import {
   api,
+  type CompanyRecord,
   type ContactRecord,
   type CurrentUser,
   type TicketPayload,
@@ -94,6 +95,7 @@ const mapTicket = (ticket: TicketRecord): TicketViewModel => ({
 const toFormState = (ticket: TicketRecord): TicketPayload => ({
   assignedTo: ticket.assignedTo || '',
   contactId: ticket.contactId,
+  companyId: ticket.companyId || '',
   description: ticket.description || '',
   priority: ticket.priority || 'medium',
   source: ticket.source || 'internal',
@@ -105,6 +107,7 @@ const toFormState = (ticket: TicketRecord): TicketPayload => ({
 const trimTicketPayload = (form: TicketPayload): TicketPayload => ({
   assignedTo: form.assignedTo?.trim() || undefined,
   contactId: form.contactId.trim(),
+  companyId: form.companyId?.trim() || undefined,
   description: form.description.trim(),
   priority: form.priority?.trim() || undefined,
   source: form.source?.trim() || undefined,
@@ -153,6 +156,9 @@ export function TicketsWorkspace() {
     () => api.getContacts(token!, 1, 100),
     [token],
   )
+  const companiesQuery = useApiQuery(Boolean(token), () => api.getCompanies(token!, 1, 200), [
+    token,
+  ])
   const usersQuery = useApiQuery(
     Boolean(token),
     () => api.getUsers(token!, 1, 100),
@@ -160,6 +166,7 @@ export function TicketsWorkspace() {
   )
 
   const contacts = contactsQuery.data?.data ?? []
+  const companies = companiesQuery.data?.data ?? []
   const users = (usersQuery.data?.data ?? []) as CurrentUser[]
   const tickets = (ticketsQuery.data ?? []).map(mapTicket)
 
@@ -199,7 +206,16 @@ export function TicketsWorkspace() {
   }, [selectedTicketId])
 
   const handleFormChange = (field: keyof TicketPayload, value: string) => {
-    setForm((current) => ({ ...current, [field]: value }))
+    setForm((current) => ({
+      ...current,
+      ...(field === 'contactId'
+        ? {
+            companyId:
+              contacts.find((contact) => contact.id === value)?.companyId || current.companyId || '',
+          }
+        : {}),
+      [field]: value,
+    }))
   }
 
   const openCreate = () => {
@@ -428,6 +444,7 @@ export function TicketsWorkspace() {
       </section>
 
       <TicketEditor
+        companies={companies as CompanyRecord[]}
         contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}

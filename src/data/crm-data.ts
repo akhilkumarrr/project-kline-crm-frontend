@@ -11,7 +11,7 @@ export type SidebarSection = {
 }
 
 type SidebarLabelOverrides = Partial<
-  Record<'calendar' | 'contacts' | 'onboarding' | 'pipeline' | 'setup' | 'tickets', string>
+  Record<'calendar' | 'companies' | 'contacts' | 'onboarding' | 'pipeline' | 'setup' | 'tickets', string>
 >
 
 export const getSidebarSections = (labels: SidebarLabelOverrides = {}): SidebarSection[] => [
@@ -20,6 +20,7 @@ export const getSidebarSections = (labels: SidebarLabelOverrides = {}): SidebarS
     items: [
       { id: 'dashboard', label: 'Dashboard', glyph: '◫' },
       { id: 'contacts', label: labels.contacts || 'Contacts', glyph: '◎', count: '482' },
+      { id: 'companies', label: labels.companies || 'Companies', glyph: '◌', count: '64' },
       { id: 'pipeline', label: labels.pipeline || 'Pipeline', glyph: '◧', count: '26' },
       { id: 'quotes', label: 'Quotes', glyph: '◨', count: '18' },
       { id: 'contracts', label: 'Contracts', glyph: '◰', count: '12' },
@@ -39,6 +40,7 @@ export const getSidebarSections = (labels: SidebarLabelOverrides = {}): SidebarS
     title: 'Control',
     items: [
       { id: 'setup', label: labels.setup || 'Get Started', glyph: '◵' },
+      { id: 'notifications', label: 'Notifications', glyph: '◔', count: '!' },
       { id: 'search', label: 'Search', glyph: '◫' },
       { id: 'analytics', label: 'Analytics', glyph: '◲' },
       { id: 'email', label: 'Email', glyph: '◴' },

@@ -1,9 +1,10 @@
 import { type FormEvent } from 'react'
-import type { ContactRecord, CurrentUser, TicketPayload } from '../../lib/api'
+import type { CompanyRecord, ContactRecord, CurrentUser, TicketPayload } from '../../lib/api'
 
 export type TicketFormState = TicketPayload
 
 type TicketEditorProps = {
+  companies?: CompanyRecord[]
   contactLabelSingular?: string
   contacts: ContactRecord[]
   form: TicketFormState
@@ -46,6 +47,7 @@ export function createEmptyTicketForm(contactId?: string): TicketFormState {
     subject: '',
     description: '',
     contactId: contactId || '',
+    companyId: '',
     assignedTo: '',
     status: 'open',
     priority: 'medium',
@@ -54,6 +56,7 @@ export function createEmptyTicketForm(contactId?: string): TicketFormState {
 }
 
 export function TicketEditor({
+  companies = [],
   contactLabelSingular = 'Contact',
   contacts,
   form,
@@ -123,6 +126,18 @@ export function TicketEditor({
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Linked account</span>
+              <select value={form.companyId || ''} onChange={(event) => onChange('companyId', event.target.value)}>
+                <option value="">No linked account</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
                   </option>
                 ))}
               </select>

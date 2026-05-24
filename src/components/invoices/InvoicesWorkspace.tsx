@@ -13,6 +13,7 @@ import {
 } from '../../lib/navigation'
 import {
   api,
+  type CompanyRecord,
   type ContactRecord,
   type InvoicePayload,
   type InvoiceRecord,
@@ -107,6 +108,7 @@ const mapInvoice = (invoice: InvoiceRecord): InvoiceViewModel => {
 const toFormState = (invoice: InvoiceRecord): InvoicePayload => ({
   invoiceNumber: invoice.invoiceNumber || '',
   contactId: invoice.contactId,
+  companyId: invoice.companyId || '',
   status: invoice.status || 'draft',
   totalAmount: Number(invoice.totalAmount || 0),
   paidAmount: Number(invoice.paidAmount || 0),
@@ -119,6 +121,7 @@ const toFormState = (invoice: InvoiceRecord): InvoicePayload => ({
 
 const trimInvoicePayload = (form: InvoicePayload): InvoicePayload => ({
   contactId: form.contactId.trim(),
+  companyId: form.companyId?.trim() || undefined,
   dueDate: form.dueDate?.trim() || undefined,
   invoiceNumber: form.invoiceNumber.trim(),
   issuedDate: form.issuedDate,
@@ -170,8 +173,12 @@ export function InvoicesWorkspace() {
     () => api.getContacts(token!, 1, 100),
     [token],
   )
+  const companiesQuery = useApiQuery(Boolean(token), () => api.getCompanies(token!, 1, 200), [
+    token,
+  ])
 
   const contacts = contactsQuery.data?.data ?? []
+  const companies = companiesQuery.data?.data ?? []
   const invoices = (invoicesQuery.data ?? []).map(mapInvoice)
 
   const groupedInvoices = useMemo(
@@ -213,6 +220,12 @@ export function InvoicesWorkspace() {
   const handleFormChange = (field: keyof InvoicePayload, value: string) => {
     setForm((current) => ({
       ...current,
+      ...(field === 'contactId'
+        ? {
+            companyId:
+              contacts.find((contact) => contact.id === value)?.companyId || current.companyId || '',
+          }
+        : {}),
       [field]:
         field === 'totalAmount' || field === 'paidAmount' ? Number(value) : value,
     }))
@@ -479,6 +492,7 @@ export function InvoicesWorkspace() {
       </section>
 
       <InvoiceEditor
+        companies={companies as CompanyRecord[]}
         contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}

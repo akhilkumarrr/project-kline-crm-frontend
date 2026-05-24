@@ -7,6 +7,7 @@ type AppShellProps = {
   activeLabel: string
   activeView: string
   children: ReactNode
+  notificationCount?: number
   onNavigate: (view: string) => void
   onLogout: () => void
   onSearch: (query: string) => void
@@ -20,6 +21,7 @@ export function AppShell({
   activeLabel,
   activeView,
   children,
+  notificationCount = 0,
   onNavigate,
   onLogout,
   onSearch,
@@ -110,6 +112,9 @@ export function AppShell({
 
             <button type="button" className="ghost-button">
               Export snapshot
+            </button>
+            <button type="button" className="ghost-button" onClick={() => onNavigate('notifications')}>
+              Notifications {notificationCount ? `(${notificationCount})` : ''}
             </button>
             <button type="button" className="primary-button">
               + Quick create

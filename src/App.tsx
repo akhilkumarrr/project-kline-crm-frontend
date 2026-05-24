@@ -7,8 +7,10 @@ import { useCrmRoute } from './hooks/useCrmRoute'
 import { useWorkspaceTemplate } from './hooks/useWorkspaceTemplate'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { ContactsPage } from './pages/ContactsPage'
+import { CompaniesPage } from './pages/CompaniesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 import { OperationsPage } from './pages/OperationsPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { RevenuePage } from './pages/RevenuePage'
@@ -16,11 +18,18 @@ import { SearchPage } from './pages/SearchPage'
 import { TeamPage } from './pages/TeamPage'
 import { EmailPage } from './pages/EmailPage'
 import { SetupPage } from './pages/SetupPage'
+import { useApiQuery } from './hooks/useApiQuery'
+import { api } from './lib/api'
 
 function App() {
   const auth = useAuth()
   const { settings, viewLabels } = useWorkspaceTemplate()
   const { route, navigate } = useCrmRoute('dashboard')
+  const notificationsQuery = useApiQuery(
+    Boolean(auth.token),
+    () => api.getNotifications(auth.token!),
+    [auth.token],
+  )
   const sidebarSections = getSidebarSections(viewLabels)
   const pageTitleMap: Record<string, string> = Object.fromEntries(
     sidebarSections.flatMap((section) => section.items.map((item) => [item.id, item.label])),
@@ -33,6 +42,8 @@ function App() {
     switch (activeView) {
       case 'contacts':
         return <ContactsPage />
+      case 'companies':
+        return <CompaniesPage />
       case 'pipeline':
         return <PipelinePage />
       case 'quotes':
@@ -42,6 +53,8 @@ function App() {
         return <SearchPage />
       case 'setup':
         return <SetupPage />
+      case 'notifications':
+        return <NotificationsPage />
       case 'tasks':
       case 'calendar':
       case 'invoices':
@@ -85,6 +98,7 @@ function App() {
         const next = query.trim()
         window.location.hash = next ? `/search?q=${encodeURIComponent(next)}` : '/search'
       }}
+      notificationCount={notificationsQuery.data?.unread || 0}
       searchPlaceholder={`${settings.runtime.labels.contactPlural}, leads, invoices, ${settings.runtime.labels.ticketPlural.toLowerCase()}`}
       sidebarSections={sidebarSections}
       user={auth.user}

@@ -1,5 +1,5 @@
 import { type FormEvent } from 'react'
-import type { ContactRecord, ContractPayload } from '../../lib/api'
+import type { CompanyRecord, ContactRecord, ContractPayload } from '../../lib/api'
 
 export type ContractFormState = ContractPayload
 type ContractFormDefaults = {
@@ -9,6 +9,7 @@ type ContractFormDefaults = {
 }
 
 type ContractEditorProps = {
+  companies?: CompanyRecord[]
   contactLabelSingular?: string
   contacts: ContactRecord[]
   form: ContractFormState
@@ -33,6 +34,7 @@ export function createEmptyContractForm(
     title: '',
     contractNumber: '',
     contactId: contactId || '',
+    companyId: '',
     description: defaults.description || '',
     startDate: today.toISOString().slice(0, 10),
     endDate: endDate.toISOString().slice(0, 10),
@@ -43,6 +45,7 @@ export function createEmptyContractForm(
 }
 
 export function ContractEditor({
+  companies = [],
   contactLabelSingular = 'Contact',
   contacts,
   form,
@@ -107,6 +110,18 @@ export function ContractEditor({
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Linked account</span>
+              <select value={form.companyId || ''} onChange={(event) => onChange('companyId', event.target.value)}>
+                <option value="">No linked account</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
                   </option>
                 ))}
               </select>

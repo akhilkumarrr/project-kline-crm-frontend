@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '../EmptyState'
 import { EntityEmailPanel } from '../email/EntityEmailPanel'
+import { RelatedFilesPanel } from '../files/RelatedFilesPanel'
 import { LoadState } from '../LoadState'
 import { QuoteEditor, createEmptyQuoteForm, type QuoteFormState } from './QuoteEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
@@ -14,6 +15,7 @@ import {
 } from '../../lib/navigation'
 import {
   api,
+  type CompanyRecord,
   type QuoteLineItem,
   type QuotePayload,
   type QuoteRecord,
@@ -108,6 +110,7 @@ const mapQuote = (quote: QuoteRecord): QuoteViewModel => ({
 const toFormState = (quote: QuoteRecord): QuoteFormState => ({
   quoteNumber: quote.quoteNumber || '',
   contactId: quote.contactId,
+  companyId: quote.companyId || '',
   description: quote.description || '',
   lineItems:
     quote.lineItems?.map((item) => ({
@@ -152,6 +155,7 @@ const sanitizeQuotePayload = (form: QuoteFormState): QuotePayload => {
   return {
     quoteNumber: form.quoteNumber.trim(),
     contactId: form.contactId,
+    companyId: form.companyId?.trim() || undefined,
     description: form.description?.trim() || undefined,
     lineItems: cleanedLineItems,
     subtotal,
@@ -176,9 +180,14 @@ export function QuotesWorkspace() {
     token,
     refreshKey,
   ])
+  const companiesQuery = useApiQuery(Boolean(token), () => api.getCompanies(token!, 1, 200), [
+    token,
+    refreshKey,
+  ])
 
   const quotes = quotesQuery.data?.data ?? []
   const contacts = contactsQuery.data?.data ?? []
+  const companies = companiesQuery.data?.data ?? []
 
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null)
   const [editorMode, setEditorMode] = useState<'create' | 'edit'>('create')
@@ -264,8 +273,13 @@ export function QuotesWorkspace() {
 
   const handleFieldChange = (field: keyof QuoteFormState, value: string) => {
     setForm((current) => {
+      const linkedCompanyId =
+        field === 'contactId'
+          ? contacts.find((contact) => contact.id === value)?.companyId || current.companyId || ''
+          : current.companyId || ''
       const next = {
         ...current,
+        ...(field === 'contactId' ? { companyId: linkedCompanyId } : {}),
         [field]: field === 'taxPercent' ? Number(value || 0) : value,
       }
 
@@ -590,6 +604,15 @@ export function QuotesWorkspace() {
                   entityLogType="QUOTE"
                   heading="Send quote by email"
                 />
+
+                <RelatedFilesPanel
+                  title="Quote files"
+                  relatedType="quote"
+                  relatedId={selectedQuote.id}
+                  refreshKey={refreshKey}
+                  emptyMessage="No files or generated PDFs are linked to this quote yet."
+                  onGenerate={() => api.generateQuotePdf(token!, selectedQuote.id)}
+                />
               </div>
             ) : (
               <EmptyState
@@ -602,6 +625,7 @@ export function QuotesWorkspace() {
       </section>
 
       <QuoteEditor
+        companies={companies as CompanyRecord[]}
         contactLabelSingular={labels.contactSingular}
         contacts={contacts}
         form={form}

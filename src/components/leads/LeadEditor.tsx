@@ -1,10 +1,11 @@
 import { type FormEvent } from 'react'
-import type { ContactRecord, LeadPayload } from '../../lib/api'
+import type { CompanyRecord, ContactRecord, LeadPayload } from '../../lib/api'
 
 export type LeadFormState = LeadPayload
 
 type LeadEditorProps = {
   contactLabelSingular?: string
+  companies?: CompanyRecord[]
   contacts: ContactRecord[]
   form: LeadFormState
   isOpen: boolean
@@ -42,6 +43,7 @@ export function createEmptyLeadForm(contactId?: string): LeadFormState {
     title: '',
     description: '',
     contactId: contactId || '',
+    companyId: '',
     stage: 'new',
     source: 'other',
     value: 0,
@@ -53,6 +55,7 @@ export function createEmptyLeadForm(contactId?: string): LeadFormState {
 
 export function LeadEditor({
   contactLabelSingular = 'Contact',
+  companies = [],
   contacts,
   form,
   isOpen,
@@ -113,6 +116,18 @@ export function LeadEditor({
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()} {contact.company ? `- ${contact.company}` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Linked account</span>
+              <select value={form.companyId || ''} onChange={(event) => onChange('companyId', event.target.value)}>
+                <option value="">No linked account</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
                   </option>
                 ))}
               </select>

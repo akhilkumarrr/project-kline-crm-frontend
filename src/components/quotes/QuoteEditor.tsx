@@ -1,5 +1,5 @@
 import { type FormEvent } from 'react'
-import type { ContactRecord, QuoteLineItem, QuotePayload } from '../../lib/api'
+import type { CompanyRecord, ContactRecord, QuoteLineItem, QuotePayload } from '../../lib/api'
 
 export type QuoteFormState = QuotePayload
 type QuoteFormDefaults = {
@@ -9,6 +9,7 @@ type QuoteFormDefaults = {
 }
 
 type QuoteEditorProps = {
+  companies?: CompanyRecord[]
   contactLabelSingular?: string
   contacts: ContactRecord[]
   form: QuoteFormState
@@ -34,6 +35,7 @@ export function createEmptyQuoteForm(
   return {
     quoteNumber: '',
     contactId: contactId || '',
+    companyId: '',
     description: defaults.description || '',
     lineItems: [
       {
@@ -54,6 +56,7 @@ export function createEmptyQuoteForm(
 }
 
 export function QuoteEditor({
+  companies = [],
   contactLabelSingular = 'Contact',
   contacts,
   form,
@@ -116,6 +119,18 @@ export function QuoteEditor({
                 {contacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
                     {`${contact.firstName} ${contact.lastName}`.trim()}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Linked account</span>
+              <select value={form.companyId || ''} onChange={(event) => onChange('companyId', event.target.value)}>
+                <option value="">No linked account</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
                   </option>
                 ))}
               </select>
