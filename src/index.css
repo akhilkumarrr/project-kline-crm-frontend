@@ -6,15 +6,60 @@
     sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #18262d;
-  background:
-    linear-gradient(180deg, #f7f1e8 0%, #f1e5d6 46%, #ebe4dc 100%);
+  color: var(--ink);
+  background: var(--page-background);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --accent-shadow: 0 1rem 2rem rgba(180, 91, 35, 0.24);
+  --app-shell-glow:
+    radial-gradient(circle at top left, rgba(255, 175, 122, 0.22), transparent 34%),
+    radial-gradient(circle at top right, rgba(29, 120, 116, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 40%);
+  --auth-hero-bg:
+    radial-gradient(circle at top left, rgba(255, 175, 112, 0.35), transparent 34%),
+    linear-gradient(160deg, rgba(13, 32, 36, 0.95), rgba(32, 53, 57, 0.88));
+  --chart-panel-bg:
+    linear-gradient(180deg, rgba(13, 32, 36, 0.96), rgba(34, 56, 61, 0.92));
+  --contrast-card-bg: rgba(13, 32, 36, 0.82);
+  --cool-bg: rgba(48, 148, 140, 0.14);
+  --cool-fg: #1e6f6f;
+  --danger-bg: rgba(214, 93, 87, 0.15);
+  --danger-fg: #9a3e39;
+  --eyebrow-color: #92755c;
+  --field-bg: rgba(255, 255, 255, 0.75);
+  --ghost-bg: rgba(255, 248, 238, 0.72);
+  --hero-surface-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.66), rgba(255, 228, 199, 0.78)),
+    var(--surface);
+  --muted-surface: rgba(255, 244, 232, 0.9);
+  --nav-active-bg:
+    linear-gradient(135deg, rgba(255, 159, 107, 0.18), rgba(255, 255, 255, 0.05));
+  --nav-count-bg: rgba(255, 255, 255, 0.08);
+  --nav-glyph-bg: rgba(255, 255, 255, 0.07);
+  --nav-title-color: rgba(240, 231, 219, 0.52);
+  --neutral-bg: rgba(12, 26, 31, 0.08);
+  --neutral-fg: #6d7375;
+  --page-background: linear-gradient(180deg, #f7f1e8 0%, #f1e5d6 46%, #ebe4dc 100%);
+  --risk-bg: rgba(214, 93, 87, 0.15);
+  --risk-fg: #9a3e39;
+  --selection-border: rgba(217, 115, 50, 0.32);
+  --selection-ring: rgba(255, 175, 112, 0.34);
+  --sidebar-bg: rgba(10, 17, 21, 0.85);
+  --sidebar-card-bg: rgba(255, 255, 255, 0.04);
+  --sidebar-card-border: rgba(255, 255, 255, 0.08);
+  --success-bg: rgba(92, 168, 106, 0.15);
+  --success-fg: #32673c;
   --surface: #fff8ef;
+  --surface-card-bg: rgba(255, 251, 246, 0.78);
+  --surface-card-border: rgba(24, 38, 45, 0.1);
+  --surface-elevated-bg: rgba(255, 246, 236, 0.82);
   --surface-strong: #fff2dd;
+  --tile-bg: rgba(255, 255, 255, 0.72);
+  --tile-border: rgba(12, 26, 31, 0.08);
+  --warning-bg: rgba(255, 179, 77, 0.18);
+  --warning-fg: #9d651c;
   --accent: #ffaf70;
   --accent-strong: #d97332;
   --ink: #18262d;
@@ -24,6 +69,20 @@
   --shadow-soft:
     0 18px 38px rgba(76, 54, 39, 0.09),
     0 2px 8px rgba(76, 54, 39, 0.06);
+  --sidebar-width: 294px;
+  --page-padding: 1.5rem;
+  --sidebar-padding: 1.5rem;
+  --surface-padding: 1.3rem;
+  --surface-radius: 1.2rem;
+  --surface-radius-lg: 1.6rem;
+  --tile-padding: 0.95rem;
+  --tile-radius: 1rem;
+  --tile-radius-lg: 1.2rem;
+  --tile-gap: 0.9rem;
+  --tile-min-height: 8rem;
+  --control-radius: 1rem;
+  --control-pad-y: 0.95rem;
+  --control-pad-x: 1rem;
 }
 
 * {
@@ -38,6 +97,8 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: var(--page-background);
+  color: var(--ink);
 }
 
 button,
@@ -62,7 +123,7 @@ a {
 
 .eyebrow {
   margin: 0;
-  color: #92755c;
+  color: var(--eyebrow-color);
   font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.18em;
