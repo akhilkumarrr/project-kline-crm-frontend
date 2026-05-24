@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { ActivityTimeline } from '../components/activities/ActivityTimeline'
+import { NoteComposer } from '../components/activities/NoteComposer'
 import { LeadEditor, createEmptyLeadForm } from '../components/leads/LeadEditor'
 import { LoadState } from '../components/LoadState'
 import { dealForecast, pipelineColumns } from '../data/crm-data'
@@ -118,6 +120,10 @@ export function PipelinePage() {
   const [form, setForm] = useState<LeadPayload>(createEmptyLeadForm())
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [noteRefreshKey, setNoteRefreshKey] = useState(0)
+  const [note, setNote] = useState('')
+  const [noteError, setNoteError] = useState<string | null>(null)
+  const [isSavingNote, setIsSavingNote] = useState(false)
 
   const leadsQuery = useApiQuery(
     Boolean(token),
@@ -169,6 +175,14 @@ export function PipelinePage() {
     groupedColumns.flatMap((column) => column.deals).find((lead) => lead.id === selectedLeadId) ||
     groupedColumns.flatMap((column) => column.deals)[0] ||
     null
+
+  const isLiveSelectedLead = Boolean(selectedLead && !selectedLead.id.startsWith('mock-'))
+
+  const timelineQuery = useApiQuery(
+    Boolean(token) && isLiveSelectedLead,
+    () => api.getLeadTimeline(token!, selectedLeadId!),
+    [token, selectedLeadId, noteRefreshKey, isLiveSelectedLead],
+  )
 
   useEffect(() => {
     const firstDeal = groupedColumns.flatMap((column) => column.deals)[0]
@@ -248,6 +262,31 @@ export function PipelinePage() {
       setSaveError(saveFailure instanceof Error ? saveFailure.message : 'Could not save lead')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSaveNote = async () => {
+    if (!token || !selectedLeadId || !note.trim()) {
+      setNoteError('Add a note before saving it to the lead timeline.')
+      return
+    }
+
+    setIsSavingNote(true)
+    setNoteError(null)
+
+    try {
+      await api.createActivity(token, {
+        relatedType: 'lead',
+        relatedId: selectedLeadId,
+        type: 'note_added',
+        description: note.trim(),
+      })
+      setNote('')
+      setNoteRefreshKey((current) => current + 1)
+    } catch (noteFailure) {
+      setNoteError(noteFailure instanceof Error ? noteFailure.message : 'Could not save lead note')
+    } finally {
+      setIsSavingNote(false)
     }
   }
 
@@ -387,6 +426,39 @@ export function PipelinePage() {
                 </div>
               </div>
             ) : null}
+          </article>
+
+          <article className="surface-card">
+            <div className="card-heading">
+              <div>
+                <p className="eyebrow">Activity</p>
+                <h3>Lead timeline</h3>
+              </div>
+            </div>
+            {isLiveSelectedLead ? (
+              <>
+                <NoteComposer
+                  buttonLabel="Add note to lead"
+                  isSaving={isSavingNote}
+                  onChange={setNote}
+                  onSubmit={handleSaveNote}
+                  placeholder="Log buyer feedback, next steps, or objections for this opportunity."
+                  saveError={noteError}
+                  value={note}
+                />
+                <LoadState
+                  loading={timelineQuery.loading}
+                  error={timelineQuery.error}
+                  title="Loading lead activity"
+                />
+                <ActivityTimeline
+                  emptyMessage="No lead activity has been captured yet."
+                  items={timelineQuery.data || []}
+                />
+              </>
+            ) : (
+              <div className="empty-card">Live lead activity appears here once this opportunity exists in the CRM.</div>
+            )}
           </article>
 
           <article className="surface-card">

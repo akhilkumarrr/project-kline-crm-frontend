@@ -474,6 +474,30 @@ export type SendEmailPayload = {
   metadata?: Record<string, unknown>
 }
 
+export type ActivityRecord = {
+  id: string
+  userId: string
+  relatedType: string
+  relatedId: string
+  type: string
+  description?: string | null
+  metadata?: Record<string, unknown> | null
+  createdAt?: string
+}
+
+export type AddNotePayload = {
+  note: string
+  metadata?: Record<string, unknown>
+}
+
+export type CreateActivityPayload = {
+  relatedType: string
+  relatedId: string
+  type: string
+  description?: string
+  metadata?: Record<string, unknown>
+}
+
 const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 ).replace(/\/$/, '')
@@ -730,6 +754,32 @@ export const api = {
   ) {
     return request<OnboardingWorkflowRecord>(`/onboarding-workflows/${workflowId}`, {
       method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  getContactTimeline(token: string, contactId: string) {
+    return request<ActivityRecord[]>(`/contacts/${contactId}/timeline`, { token })
+  },
+  getContactCommunications(token: string, contactId: string) {
+    return request<ActivityRecord[]>(`/contacts/${contactId}/communications`, { token })
+  },
+  addContactNote(token: string, contactId: string, payload: AddNotePayload) {
+    return request<ActivityRecord>(`/contacts/${contactId}/notes`, {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  getLeadTimeline(token: string, leadId: string) {
+    return request<ActivityRecord[]>(`/leads/${leadId}/timeline`, { token })
+  },
+  getLeadActivities(token: string, leadId: string) {
+    return request<ActivityRecord[]>(`/leads/${leadId}/activities`, { token })
+  },
+  createActivity(token: string, payload: CreateActivityPayload) {
+    return request<ActivityRecord>('/activities', {
+      method: 'POST',
       body: payload,
       token,
     })

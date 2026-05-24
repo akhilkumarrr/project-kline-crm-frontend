@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { ActivityTimeline } from '../components/activities/ActivityTimeline'
+import { NoteComposer } from '../components/activities/NoteComposer'
 import { ContactEditor, createEmptyContactForm } from '../components/contacts/ContactEditor'
 import { LoadState } from '../components/LoadState'
-import { contactRecords, contactTimeline } from '../data/crm-data'
+import { contactRecords } from '../data/crm-data'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { useAuth } from '../hooks/useAuth'
 import { api, type ContactPayload, type ContactRecord } from '../lib/api'
@@ -85,6 +87,10 @@ export function ContactsPage() {
   const [form, setForm] = useState<ContactPayload>(createEmptyContactForm())
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [noteRefreshKey, setNoteRefreshKey] = useState(0)
+  const [note, setNote] = useState('')
+  const [noteError, setNoteError] = useState<string | null>(null)
+  const [isSavingNote, setIsSavingNote] = useState(false)
 
   const { data, error, loading } = useApiQuery(
     Boolean(token),
@@ -99,6 +105,20 @@ export function ContactsPage() {
 
   const selectedContact =
     contacts.find((contact) => contact.id === selectedContactId) || contacts[0] || null
+
+  const isLiveSelectedContact = Boolean(selectedContact && !selectedContact.id.startsWith('mock-'))
+
+  const timelineQuery = useApiQuery(
+    Boolean(token) && isLiveSelectedContact,
+    () => api.getContactTimeline(token!, selectedContactId!),
+    [token, selectedContactId, noteRefreshKey, isLiveSelectedContact],
+  )
+
+  const communicationsQuery = useApiQuery(
+    Boolean(token) && isLiveSelectedContact,
+    () => api.getContactCommunications(token!, selectedContactId!),
+    [token, selectedContactId, noteRefreshKey, isLiveSelectedContact],
+  )
 
   useEffect(() => {
     if (!selectedContactId && contacts[0]) {
@@ -170,6 +190,28 @@ export function ContactsPage() {
       setSaveError(saveFailure instanceof Error ? saveFailure.message : 'Could not save contact')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSaveNote = async () => {
+    if (!token || !selectedContactId || !note.trim()) {
+      setNoteError('Add a note before saving it to the contact timeline.')
+      return
+    }
+
+    setIsSavingNote(true)
+    setNoteError(null)
+
+    try {
+      await api.addContactNote(token, selectedContactId, {
+        note: note.trim(),
+      })
+      setNote('')
+      setNoteRefreshKey((current) => current + 1)
+    } catch (noteFailure) {
+      setNoteError(noteFailure instanceof Error ? noteFailure.message : 'Could not save note')
+    } finally {
+      setIsSavingNote(false)
     }
   }
 
@@ -308,18 +350,57 @@ export function ContactsPage() {
                 <h3>{selectedContact?.company || 'Customer timeline'}</h3>
               </div>
             </div>
-            <div className="timeline">
-              {contactTimeline.map((item) => (
-                <div className="timeline-row" key={`${item.time}-${item.title}`}>
-                  <span className={`timeline-dot ${item.tone}`} aria-hidden="true" />
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.detail}</p>
-                  </div>
-                  <span>{item.time}</span>
-                </div>
-              ))}
+            {isLiveSelectedContact ? (
+              <>
+                <NoteComposer
+                  buttonLabel="Add note to timeline"
+                  isSaving={isSavingNote}
+                  onChange={setNote}
+                  onSubmit={handleSaveNote}
+                  placeholder="Capture the latest call summary, follow-up, or context for this customer."
+                  saveError={noteError}
+                  value={note}
+                />
+
+                <LoadState
+                  loading={timelineQuery.loading}
+                  error={timelineQuery.error}
+                  title="Loading contact timeline"
+                />
+
+                <ActivityTimeline
+                  emptyMessage="No timeline activity has been recorded for this contact yet."
+                  items={timelineQuery.data || []}
+                />
+              </>
+            ) : (
+              <div className="empty-card">Create or select a live contact to unlock the activity timeline.</div>
+            )}
+          </article>
+
+          <article className="surface-card">
+            <div className="card-heading">
+              <div>
+                <p className="eyebrow">Communications</p>
+                <h3>{selectedContact?.name || 'Messages and meetings'}</h3>
+              </div>
             </div>
+
+            {isLiveSelectedContact ? (
+              <>
+                <LoadState
+                  loading={communicationsQuery.loading}
+                  error={communicationsQuery.error}
+                  title="Loading communications"
+                />
+                <ActivityTimeline
+                  emptyMessage="No communication history has been logged for this contact yet."
+                  items={communicationsQuery.data || []}
+                />
+              </>
+            ) : (
+              <div className="empty-card">Live communications appear here once this contact has tracked activity.</div>
+            )}
           </article>
         </div>
       </section>
