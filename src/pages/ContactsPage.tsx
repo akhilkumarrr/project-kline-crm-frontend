@@ -6,6 +6,7 @@ import { LoadState } from '../components/LoadState'
 import { contactRecords } from '../data/crm-data'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { useAuth } from '../hooks/useAuth'
+import { useFeedback } from '../hooks/useFeedback'
 import { api, type ContactPayload, type ContactRecord } from '../lib/api'
 
 type ContactViewModel = {
@@ -79,6 +80,7 @@ const toFormState = (contact: ContactRecord): ContactPayload => ({
 
 export function ContactsPage() {
   const { token } = useAuth()
+  const { notifyError, notifySuccess } = useFeedback()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -179,15 +181,19 @@ export function ContactsPage() {
       if (editorMode === 'create') {
         const created = await api.createContact(token, payload)
         setSelectedContactId(created.id)
+        notifySuccess(`${payload.firstName} ${payload.lastName}`.trim() || 'New contact created.', 'Contact created')
       } else if (editingContactId) {
         const updated = await api.updateContact(token, editingContactId, payload)
         setSelectedContactId(updated.id)
+        notifySuccess(`${payload.firstName} ${payload.lastName}`.trim() || 'Contact updated.', 'Contact saved')
       }
 
       setIsEditorOpen(false)
       setRefreshKey((current) => current + 1)
     } catch (saveFailure) {
-      setSaveError(saveFailure instanceof Error ? saveFailure.message : 'Could not save contact')
+      const message = saveFailure instanceof Error ? saveFailure.message : 'Could not save contact'
+      setSaveError(message)
+      notifyError(message, 'Contact save failed')
     } finally {
       setIsSaving(false)
     }
@@ -208,8 +214,11 @@ export function ContactsPage() {
       })
       setNote('')
       setNoteRefreshKey((current) => current + 1)
+      notifySuccess('The note was added to the customer timeline.', 'Note saved')
     } catch (noteFailure) {
-      setNoteError(noteFailure instanceof Error ? noteFailure.message : 'Could not save note')
+      const message = noteFailure instanceof Error ? noteFailure.message : 'Could not save note'
+      setNoteError(message)
+      notifyError(message, 'Note save failed')
     } finally {
       setIsSavingNote(false)
     }

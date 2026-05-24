@@ -3,6 +3,7 @@ import { LoadState } from '../LoadState'
 import { TaskEditor, createEmptyTaskForm } from './TaskEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import { useFeedback } from '../../hooks/useFeedback'
 import {
   api,
   type ContactRecord,
@@ -119,6 +120,7 @@ const trimTaskPayload = (form: TaskPayload): TaskPayload => ({
 
 export function TasksWorkspace() {
   const { token } = useAuth()
+  const { notifyError, notifySuccess } = useFeedback()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -224,15 +226,19 @@ export function TasksWorkspace() {
       if (editorMode === 'create') {
         const created = await api.createTask(token, payload)
         setSelectedTaskId(created.id)
+        notifySuccess(payload.title, 'Task created')
       } else if (editingTaskId) {
         const updated = await api.updateTask(token, editingTaskId, payload)
         setSelectedTaskId(updated.id)
+        notifySuccess(payload.title, 'Task saved')
       }
 
       setIsEditorOpen(false)
       setRefreshKey((current) => current + 1)
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Could not save task')
+      const message = error instanceof Error ? error.message : 'Could not save task'
+      setSaveError(message)
+      notifyError(message, 'Task save failed')
     } finally {
       setIsSaving(false)
     }
@@ -246,8 +252,11 @@ export function TasksWorkspace() {
     try {
       await api.updateTaskStatus(token, selectedTaskId, status)
       setRefreshKey((current) => current + 1)
+      notifySuccess(`Task moved to ${formatStatus(status)}.`, 'Status updated')
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Could not update task status')
+      const message = error instanceof Error ? error.message : 'Could not update task status'
+      setSaveError(message)
+      notifyError(message, 'Status update failed')
     }
   }
 

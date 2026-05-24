@@ -6,6 +6,7 @@ import { LoadState } from '../components/LoadState'
 import { dealForecast, pipelineColumns } from '../data/crm-data'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { useAuth } from '../hooks/useAuth'
+import { useFeedback } from '../hooks/useFeedback'
 import { api, type ContactRecord, type LeadPayload, type LeadRecord } from '../lib/api'
 
 type PipelineDealView = {
@@ -112,6 +113,7 @@ const trimLeadPayload = (form: LeadPayload): LeadPayload => ({
 
 export function PipelinePage() {
   const { token } = useAuth()
+  const { notifyError, notifySuccess } = useFeedback()
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -251,15 +253,19 @@ export function PipelinePage() {
       if (editorMode === 'create') {
         const created = await api.createLead(token, payload)
         setSelectedLeadId(created.id)
+        notifySuccess(payload.title, 'Lead created')
       } else if (editingLeadId) {
         const updated = await api.updateLead(token, editingLeadId, payload)
         setSelectedLeadId(updated.id)
+        notifySuccess(payload.title, 'Lead saved')
       }
 
       setIsEditorOpen(false)
       setRefreshKey((current) => current + 1)
     } catch (saveFailure) {
-      setSaveError(saveFailure instanceof Error ? saveFailure.message : 'Could not save lead')
+      const message = saveFailure instanceof Error ? saveFailure.message : 'Could not save lead'
+      setSaveError(message)
+      notifyError(message, 'Lead save failed')
     } finally {
       setIsSaving(false)
     }
@@ -283,8 +289,11 @@ export function PipelinePage() {
       })
       setNote('')
       setNoteRefreshKey((current) => current + 1)
+      notifySuccess('The note was added to this opportunity timeline.', 'Note saved')
     } catch (noteFailure) {
-      setNoteError(noteFailure instanceof Error ? noteFailure.message : 'Could not save lead note')
+      const message = noteFailure instanceof Error ? noteFailure.message : 'Could not save lead note'
+      setNoteError(message)
+      notifyError(message, 'Note save failed')
     } finally {
       setIsSavingNote(false)
     }
