@@ -158,6 +158,52 @@ export type TaskPayload = {
   relatedEntityId?: string
 }
 
+export type AppointmentRecord = {
+  id: string
+  title: string
+  description?: string | null
+  type?: string
+  status?: string
+  startAt?: string | null
+  endAt?: string | null
+  location?: string | null
+  contactId?: string | null
+  contact?: ContactRecord | null
+  leadId?: string | null
+  lead?: LeadRecord | null
+  ownerId?: string
+  owner?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  assignedTo?: string | null
+  assignedUser?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  attendees?: string[] | null
+  metadata?: Record<string, unknown> | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type AppointmentPayload = {
+  title: string
+  description?: string
+  type?: string
+  status?: string
+  startAt: string
+  endAt: string
+  location?: string
+  contactId?: string
+  leadId?: string
+  assignedTo?: string
+}
+
 const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 ).replace(/\/$/, '')
@@ -277,7 +323,21 @@ export const api = {
     })
   },
   getAppointments(token: string) {
-    return request<any[]>('/appointments', { token })
+    return request<AppointmentRecord[]>('/appointments', { token })
+  },
+  createAppointment(token: string, payload: AppointmentPayload) {
+    return request<AppointmentRecord>('/appointments', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateAppointment(token: string, appointmentId: string, payload: Partial<AppointmentPayload>) {
+    return request<AppointmentRecord>(`/appointments/${appointmentId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
   },
   getInvoices(token: string) {
     return request<any[]>('/invoices', { token })
