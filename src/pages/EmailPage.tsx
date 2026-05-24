@@ -7,6 +7,7 @@ import {
 } from '../components/email/EmailTemplateEditor'
 import { LoadState } from '../components/LoadState'
 import { useAuth } from '../hooks/useAuth'
+import { useFeedback } from '../hooks/useFeedback'
 import {
   api,
   type EmailLogRecord,
@@ -58,6 +59,7 @@ const toTemplateForm = (template: EmailTemplateRecord): EmailTemplateFormState =
 
 export function EmailPage() {
   const { token } = useAuth()
+  const { confirm, notifyError, notifySuccess } = useFeedback()
   const [refreshKey, setRefreshKey] = useState(0)
   const [templates, setTemplates] = useState<EmailTemplateRecord[]>([])
   const [logs, setLogs] = useState<EmailLogRecord[]>([])
@@ -153,14 +155,18 @@ export function EmailPage() {
       if (editorMode === 'create') {
         const created = await api.createEmailTemplate(token, payload)
         setSelectedTemplateId(created.id)
+        notifySuccess(`"${payload.name}" is ready to use.`, 'Template created')
       } else if (selectedTemplateId) {
         await api.updateEmailTemplate(token, selectedTemplateId, payload)
+        notifySuccess(`"${payload.name}" was updated.`, 'Template saved')
       }
 
       setIsEditorOpen(false)
       setRefreshKey((current) => current + 1)
     } catch (nextError) {
-      setTemplateError(nextError instanceof Error ? nextError.message : 'Unable to save template.')
+      const message = nextError instanceof Error ? nextError.message : 'Unable to save template.'
+      setTemplateError(message)
+      notifyError(message, 'Template save failed')
     } finally {
       setIsSavingTemplate(false)
     }
@@ -171,14 +177,29 @@ export function EmailPage() {
       return
     }
 
+    const template = templates.find((item) => item.id === templateId)
+    const confirmed = await confirm({
+      confirmLabel: 'Delete template',
+      description: `Delete ${template?.name || 'this template'} from the library?`,
+      title: 'Remove template?',
+      tone: 'danger',
+    })
+
+    if (!confirmed) {
+      return
+    }
+
     try {
       await api.deleteEmailTemplate(token, templateId)
       setRefreshKey((current) => current + 1)
       if (selectedTemplateId === templateId) {
         setSelectedTemplateId(null)
       }
+      notifySuccess('The template was removed from the library.', 'Template deleted')
     } catch (nextError) {
-      setTemplateError(nextError instanceof Error ? nextError.message : 'Unable to delete template.')
+      const message = nextError instanceof Error ? nextError.message : 'Unable to delete template.'
+      setTemplateError(message)
+      notifyError(message, 'Delete failed')
     }
   }
 
@@ -202,8 +223,11 @@ export function EmailPage() {
 
       setComposeState({ body: '', subject: '', to: '' })
       setRefreshKey((current) => current + 1)
+      notifySuccess('Your message was sent and logged.', 'Email delivered')
     } catch (nextError) {
-      setComposeError(nextError instanceof Error ? nextError.message : 'Unable to send email.')
+      const message = nextError instanceof Error ? nextError.message : 'Unable to send email.'
+      setComposeError(message)
+      notifyError(message, 'Send failed')
     } finally {
       setIsSending(false)
     }
@@ -214,11 +238,25 @@ export function EmailPage() {
       return
     }
 
+    const log = logs.find((item) => item.id === emailLogId)
+    const confirmed = await confirm({
+      confirmLabel: 'Resend email',
+      description: `Resend "${log?.subject || 'this email'}" to ${log?.to || 'the original recipient'}?`,
+      title: 'Resend email now?',
+    })
+
+    if (!confirmed) {
+      return
+    }
+
     try {
       await api.resendEmail(token, emailLogId)
       setRefreshKey((current) => current + 1)
+      notifySuccess('The email was queued again for delivery.', 'Email resent')
     } catch (nextError) {
-      setComposeError(nextError instanceof Error ? nextError.message : 'Unable to resend email.')
+      const message = nextError instanceof Error ? nextError.message : 'Unable to resend email.'
+      setComposeError(message)
+      notifyError(message, 'Resend failed')
     }
   }
 

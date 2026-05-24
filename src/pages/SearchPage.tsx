@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LoadState } from '../components/LoadState'
 import { useAuth } from '../hooks/useAuth'
+import { useFeedback } from '../hooks/useFeedback'
 import {
   api,
   type ContactRecord,
@@ -56,6 +57,7 @@ const countResults = (results: GlobalSearchResults | null) =>
 
 export function SearchPage() {
   const { token } = useAuth()
+  const { confirm, notifyError, notifySuccess } = useFeedback()
   const [q, setQ] = useState(readSearchState().q)
   const [entity, setEntity] = useState<SearchEntity>(readSearchState().entity)
   const [results, setResults] = useState<GlobalSearchResults | null>(null)
@@ -158,8 +160,11 @@ export function SearchPage() {
       await api.createSavedSearch(token, payload)
       setSaveName('')
       setRefreshKey((current) => current + 1)
+      notifySuccess(`Saved "${name}" for quick access later.`, 'Search saved')
     } catch (nextError) {
-      setSaveError(nextError instanceof Error ? nextError.message : 'Unable to save search.')
+      const message = nextError instanceof Error ? nextError.message : 'Unable to save search.'
+      setSaveError(message)
+      notifyError(message, 'Search not saved')
     }
   }
 
@@ -181,11 +186,26 @@ export function SearchPage() {
       return
     }
 
+    const savedSearch = savedSearches.find((search) => search.id === id)
+    const confirmed = await confirm({
+      confirmLabel: 'Delete view',
+      description: `Remove ${savedSearch?.name || 'this saved search'} from the workspace shortcuts?`,
+      title: 'Delete saved search?',
+      tone: 'danger',
+    })
+
+    if (!confirmed) {
+      return
+    }
+
     try {
       await api.deleteSavedSearch(token, id)
       setRefreshKey((current) => current + 1)
+      notifySuccess('The saved view was removed.', 'Saved search deleted')
     } catch (nextError) {
-      setSaveError(nextError instanceof Error ? nextError.message : 'Unable to delete saved search.')
+      const message = nextError instanceof Error ? nextError.message : 'Unable to delete saved search.'
+      setSaveError(message)
+      notifyError(message, 'Delete failed')
     }
   }
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import { useFeedback } from '../../hooks/useFeedback'
 import { api, type EmailLogRecord } from '../../lib/api'
 import { LoadState } from '../LoadState'
 
@@ -51,11 +52,11 @@ export function EntityEmailPanel({
   heading,
 }: EntityEmailPanelProps) {
   const { token } = useAuth()
+  const { notifyError, notifySuccess } = useFeedback()
   const [refreshKey, setRefreshKey] = useState(0)
   const [toEmail, setToEmail] = useState(defaultToEmail || '')
   const [templateId, setTemplateId] = useState('')
   const [sendError, setSendError] = useState<string | null>(null)
-  const [sendSuccess, setSendSuccess] = useState<string | null>(null)
   const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
@@ -105,7 +106,6 @@ export function EntityEmailPanel({
 
     setIsSending(true)
     setSendError(null)
-    setSendSuccess(null)
 
     try {
       if (entityKind === 'quote') {
@@ -120,10 +120,12 @@ export function EntityEmailPanel({
         })
       }
 
-      setSendSuccess(`${heading} sent successfully.`)
       setRefreshKey((current) => current + 1)
+      notifySuccess(`${heading} was delivered and logged.`, `${heading} sent`)
     } catch (error) {
-      setSendError(error instanceof Error ? error.message : `Unable to send ${entityKind}.`)
+      const message = error instanceof Error ? error.message : `Unable to send ${entityKind}.`
+      setSendError(message)
+      notifyError(message, `${heading} not sent`)
     } finally {
       setIsSending(false)
     }
@@ -135,14 +137,15 @@ export function EntityEmailPanel({
     }
 
     setSendError(null)
-    setSendSuccess(null)
 
     try {
       await api.resendEmail(token, emailLogId)
-      setSendSuccess('Email resent successfully.')
       setRefreshKey((current) => current + 1)
+      notifySuccess('The email was queued again for delivery.', 'Email resent')
     } catch (error) {
-      setSendError(error instanceof Error ? error.message : 'Unable to resend email.')
+      const message = error instanceof Error ? error.message : 'Unable to resend email.'
+      setSendError(message)
+      notifyError(message, 'Resend failed')
     }
   }
 
@@ -181,7 +184,6 @@ export function EntityEmailPanel({
         />
 
         {sendError ? <p className="auth-error">{sendError}</p> : null}
-        {sendSuccess ? <p className="success-copy">{sendSuccess}</p> : null}
 
         <div className="inline-actions">
           <button type="button" className="primary-button compact-button" onClick={handleSend} disabled={isSending}>

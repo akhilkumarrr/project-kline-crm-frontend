@@ -4,13 +4,16 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './hooks/useAuth.tsx'
 import { AppearanceProvider } from './hooks/useAppearance.tsx'
+import { FeedbackProvider } from './hooks/useFeedback.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppearanceProvider>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <FeedbackProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </FeedbackProvider>
     </AppearanceProvider>
   </StrictMode>,
 )
