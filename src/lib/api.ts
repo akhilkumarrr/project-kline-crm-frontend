@@ -204,6 +204,42 @@ export type AppointmentPayload = {
   assignedTo?: string
 }
 
+export type InvoiceRecord = {
+  id: string
+  invoiceNumber: string
+  contactId: string
+  contact?: ContactRecord | null
+  quoteId?: string | null
+  contractId?: string | null
+  status?: string
+  totalAmount?: number | string | null
+  paidAmount?: number | string | null
+  balanceDue?: number | string | null
+  issuedDate?: string | null
+  dueDate?: string | null
+  paidAt?: string | null
+  paymentMethod?: string | null
+  notes?: string | null
+  ownerId?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type InvoicePayload = {
+  invoiceNumber: string
+  contactId: string
+  quoteId?: string
+  contractId?: string
+  status?: string
+  totalAmount: number
+  paidAmount?: number
+  issuedDate: string
+  dueDate?: string
+  paidAt?: string
+  paymentMethod?: string
+  notes?: string
+}
+
 const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 ).replace(/\/$/, '')
@@ -340,7 +376,21 @@ export const api = {
     })
   },
   getInvoices(token: string) {
-    return request<any[]>('/invoices', { token })
+    return request<InvoiceRecord[]>('/invoices', { token })
+  },
+  createInvoice(token: string, payload: InvoicePayload) {
+    return request<InvoiceRecord>('/invoices', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateInvoice(token: string, invoiceId: string, payload: Partial<InvoicePayload>) {
+    return request<InvoiceRecord>(`/invoices/${invoiceId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
   },
   getOnboardingWorkflows(token: string) {
     return request<any[]>('/onboarding-workflows', { token })

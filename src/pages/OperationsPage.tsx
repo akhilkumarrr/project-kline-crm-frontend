@@ -5,6 +5,7 @@ import {
   ticketRows,
 } from '../data/crm-data'
 import { AppointmentsWorkspace } from '../components/appointments/AppointmentsWorkspace'
+import { InvoicesWorkspace } from '../components/invoices/InvoicesWorkspace'
 import { TasksWorkspace } from '../components/tasks/TasksWorkspace'
 import { LoadState } from '../components/LoadState'
 import { useApiQuery } from '../hooks/useApiQuery'
@@ -49,6 +50,10 @@ const operationsMap = {
 } as const
 
 export function OperationsPage({ activeView }: OperationsPageProps) {
+  if (activeView === 'invoices') {
+    return <InvoicesWorkspace />
+  }
+
   if (activeView === 'calendar') {
     return <AppointmentsWorkspace />
   }
