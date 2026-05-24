@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 const readHashRoute = (fallback: string) => {
   const raw = window.location.hash.replace(/^#\/?/, '').trim()
-  return raw || fallback
+  return raw.split('?')[0] || fallback
 }
 
 export function useCrmRoute(fallback: string) {

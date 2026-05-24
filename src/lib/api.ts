@@ -397,6 +397,83 @@ export type OnboardingWorkflowPayload = {
   dueDate?: string
 }
 
+export type SavedSearchRecord = {
+  id: string
+  name: string
+  entityType: string
+  filters: Record<string, unknown>
+  userId: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type SavedSearchPayload = {
+  name: string
+  entityType: string
+  filters: Record<string, unknown>
+}
+
+export type GlobalSearchResults = {
+  contacts?: ContactRecord[]
+  leads?: LeadRecord[]
+  quotes?: QuoteRecord[]
+  contracts?: ContractRecord[]
+  tasks?: TaskRecord[]
+}
+
+export type EmailTemplateVariable = {
+  name: string
+  example: string
+  description?: string
+}
+
+export type EmailTemplateRecord = {
+  id: string
+  name: string
+  subject: string
+  body: string
+  variables?: EmailTemplateVariable[] | null
+  templateType?: string
+  isActive?: boolean
+  createdBy?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type EmailTemplatePayload = {
+  name: string
+  subject: string
+  body: string
+  variables?: EmailTemplateVariable[]
+  templateType?: string
+}
+
+export type EmailLogRecord = {
+  id: string
+  to: string
+  cc?: string | null
+  bcc?: string | null
+  subject: string
+  body: string
+  status?: string
+  error?: string | null
+  metadata?: Record<string, unknown> | null
+  openedAt?: string | null
+  clickedAt?: string | null
+  messageId?: string | null
+  sentBy?: string | null
+  sentAt?: string
+}
+
+export type SendEmailPayload = {
+  to: string
+  cc?: string
+  bcc?: string
+  subject: string
+  body: string
+  metadata?: Record<string, unknown>
+}
+
 const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 ).replace(/\/$/, '')
@@ -426,6 +503,21 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   }
 
   return (await response.json()) as T
+}
+
+function buildQuery(params: Record<string, string | number | boolean | undefined | null>) {
+  const search = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return
+    }
+
+    search.set(key, String(value))
+  })
+
+  const query = search.toString()
+  return query ? `?${query}` : ''
 }
 
 export const tokenStorage = {
@@ -656,6 +748,100 @@ export const api = {
   },
   getAnalyticsQuoteMetrics(token: string) {
     return request<any>('/analytics/quote-metrics', { token })
+  },
+  globalSearch(token: string, q: string, entityType?: string) {
+    return request<GlobalSearchResults>(
+      `/search/global${buildQuery({ entityType, q })}`,
+      { token },
+    )
+  },
+  advancedContactSearch(
+    token: string,
+    filters: Record<string, string | number | boolean | undefined | null>,
+  ) {
+    return request<ContactRecord[]>(`/contacts/advanced-search${buildQuery(filters)}`, {
+      token,
+    })
+  },
+  advancedLeadSearch(
+    token: string,
+    filters: Record<string, string | number | boolean | undefined | null>,
+  ) {
+    return request<LeadRecord[]>(`/leads/advanced-search${buildQuery(filters)}`, {
+      token,
+    })
+  },
+  getSavedSearches(token: string) {
+    return request<SavedSearchRecord[]>('/saved-searches', { token })
+  },
+  createSavedSearch(token: string, payload: SavedSearchPayload) {
+    return request<SavedSearchRecord>('/saved-searches', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateSavedSearch(token: string, savedSearchId: string, payload: Partial<SavedSearchPayload>) {
+    return request<SavedSearchRecord>(`/saved-searches/${savedSearchId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  deleteSavedSearch(token: string, savedSearchId: string) {
+    return request<{ message: string }>(`/saved-searches/${savedSearchId}`, {
+      method: 'DELETE',
+      token,
+    })
+  },
+  getEmailTemplates(token: string, page = 1, limit = 100) {
+    return request<PaginatedResponse<EmailTemplateRecord>>(
+      `/email/templates${buildQuery({ page, limit })}`,
+      { token },
+    )
+  },
+  createEmailTemplate(token: string, payload: EmailTemplatePayload) {
+    return request<EmailTemplateRecord>('/email/templates', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateEmailTemplate(
+    token: string,
+    templateId: string,
+    payload: Partial<EmailTemplatePayload>,
+  ) {
+    return request<EmailTemplateRecord>(`/email/templates/${templateId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  deleteEmailTemplate(token: string, templateId: string) {
+    return request<{ message: string }>(`/email/templates/${templateId}`, {
+      method: 'DELETE',
+      token,
+    })
+  },
+  sendEmail(token: string, payload: SendEmailPayload) {
+    return request<EmailLogRecord>('/email/send', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  getEmailLogs(token: string, page = 1, limit = 100, status?: string) {
+    return request<PaginatedResponse<EmailLogRecord>>(
+      `/email/logs${buildQuery({ page, limit, status })}`,
+      { token },
+    )
+  },
+  resendEmail(token: string, emailLogId: string) {
+    return request<EmailLogRecord>(`/email/logs/${emailLogId}/resend`, {
+      method: 'POST',
+      token,
+    })
   },
   getUsers(token: string, page = 1, limit = 20) {
     return request<PaginatedResponse<any>>(`/users?page=${page}&limit=${limit}`, {

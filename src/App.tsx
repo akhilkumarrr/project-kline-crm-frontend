@@ -11,7 +11,9 @@ import { LoginPage } from './pages/LoginPage'
 import { OperationsPage } from './pages/OperationsPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { RevenuePage } from './pages/RevenuePage'
+import { SearchPage } from './pages/SearchPage'
 import { TeamPage } from './pages/TeamPage'
+import { EmailPage } from './pages/EmailPage'
 
 const pageTitleMap: Record<string, string> = Object.fromEntries(
   sidebarSections.flatMap((section) =>
@@ -35,6 +37,8 @@ function App() {
       case 'quotes':
       case 'contracts':
         return <RevenuePage activeView={activeView} />
+      case 'search':
+        return <SearchPage />
       case 'tasks':
       case 'calendar':
       case 'invoices':
@@ -43,6 +47,8 @@ function App() {
         return <OperationsPage activeView={activeView} />
       case 'analytics':
         return <AnalyticsPage />
+      case 'email':
+        return <EmailPage />
       case 'team':
       case 'settings':
         return <TeamPage activeView={activeView} />
@@ -72,6 +78,10 @@ function App() {
       activeLabel={activeLabel}
       onNavigate={navigate}
       onLogout={auth.logout}
+      onSearch={(query) => {
+        const next = query.trim()
+        window.location.hash = next ? `/search?q=${encodeURIComponent(next)}` : '/search'
+      }}
       user={auth.user}
     >
       {renderPage()}

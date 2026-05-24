@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 import { sidebarSections } from '../data/crm-data'
 import type { CurrentUser } from '../lib/api'
 
@@ -8,6 +9,7 @@ type AppShellProps = {
   children: ReactNode
   onNavigate: (view: string) => void
   onLogout: () => void
+  onSearch: (query: string) => void
   user: CurrentUser | null
 }
 
@@ -17,8 +19,11 @@ export function AppShell({
   children,
   onNavigate,
   onLogout,
+  onSearch,
   user,
 }: AppShellProps) {
+  const [searchValue, setSearchValue] = useState('')
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -80,14 +85,22 @@ export function AppShell({
           </div>
 
           <div className="topbar-actions">
-            <label className="searchbox">
+            <form
+              className="searchbox"
+              onSubmit={(event) => {
+                event.preventDefault()
+                onSearch(searchValue)
+              }}
+            >
               <span aria-hidden="true">Search</span>
               <input
                 type="search"
                 placeholder="Contacts, leads, invoices, tickets"
                 aria-label="Search the CRM"
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
               />
-            </label>
+            </form>
 
             <button type="button" className="ghost-button">
               Export snapshot

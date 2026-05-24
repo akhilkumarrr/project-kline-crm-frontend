@@ -34,7 +34,9 @@ export const sidebarSections: SidebarSection[] = [
   {
     title: 'Control',
     items: [
+      { id: 'search', label: 'Search', glyph: '◫' },
       { id: 'analytics', label: 'Analytics', glyph: '◲' },
+      { id: 'email', label: 'Email', glyph: '◴' },
       { id: 'team', label: 'Team', glyph: '◍' },
       { id: 'settings', label: 'Settings', glyph: '◭' },
     ],
