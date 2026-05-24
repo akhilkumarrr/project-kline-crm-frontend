@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
+import { EmptyState } from '../EmptyState'
 import { LoadState } from '../LoadState'
 import { TaskEditor, createEmptyTaskForm } from './TaskEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeedback } from '../../hooks/useFeedback'
+import {
+  navigateToRoute,
+  readHashParam,
+  readHashRouteState,
+  replaceHashRoute,
+} from '../../lib/navigation'
 import {
   api,
   type ContactRecord,
@@ -20,6 +27,7 @@ type TaskViewModel = {
   dueDate?: string | null
   id: string
   priority: string
+  relatedId?: string | null
   relatedLabel: string
   relatedType?: string | null
   status: string
@@ -82,6 +90,7 @@ const mapTask = (
   dueDate: task.dueDate,
   id: task.id,
   priority: task.priority || 'medium',
+  relatedId: task.relatedEntityId,
   relatedLabel: buildRelatedLabel(task, contacts, leads),
   relatedType: task.relatedEntityType,
   status: task.status || 'todo',
@@ -160,6 +169,24 @@ export function TasksWorkspace() {
     tasks.find((task) => task.id === selectedTaskId) || tasks[0] || null
 
   useEffect(() => {
+    const syncSelectedFromHash = () => {
+      if (readHashRouteState().route !== 'tasks') {
+        return
+      }
+
+      const nextSelected = readHashParam('selected')
+      if (nextSelected) {
+        setSelectedTaskId(nextSelected)
+      }
+    }
+
+    syncSelectedFromHash()
+    window.addEventListener('hashchange', syncSelectedFromHash)
+
+    return () => window.removeEventListener('hashchange', syncSelectedFromHash)
+  }, [])
+
+  useEffect(() => {
     if (!selectedTaskId && tasks[0]) {
       setSelectedTaskId(tasks[0].id)
       return
@@ -169,6 +196,14 @@ export function TasksWorkspace() {
       setSelectedTaskId(tasks[0].id)
     }
   }, [selectedTaskId, tasks])
+
+  useEffect(() => {
+    if (!selectedTaskId || readHashRouteState().route !== 'tasks') {
+      return
+    }
+
+    replaceHashRoute('tasks', { selected: selectedTaskId })
+  }, [selectedTaskId])
 
   const handleFormChange = (field: keyof TaskPayload, value: string) => {
     setForm((current) => {
@@ -296,52 +331,61 @@ export function TasksWorkspace() {
               title="Loading tasks"
             />
 
-            <div className="table-list">
-              {tasks.map((task) => (
-                <div
-                  className={
-                    task.id === selectedTask?.id
-                      ? 'table-row contact-row selected'
-                      : 'table-row contact-row'
-                  }
-                  key={task.id}
-                >
-                  <button
-                    type="button"
-                    className="row-hitbox"
-                    onClick={() => setSelectedTaskId(task.id)}
+            {tasks.length ? (
+              <div className="table-list">
+                {tasks.map((task) => (
+                  <div
+                    className={
+                      task.id === selectedTask?.id
+                        ? 'table-row contact-row selected'
+                        : 'table-row contact-row'
+                    }
+                    key={task.id}
                   >
-                    <div>
-                      <strong>{task.title}</strong>
-                      <p>{task.description || task.relatedLabel}</p>
-                    </div>
-                    <div>
-                      <span className="data-label">Status</span>
-                      <b>{formatStatus(task.status)}</b>
-                    </div>
-                    <div>
-                      <span className="data-label">Priority</span>
-                      <b>{formatPriority(task.priority)}</b>
-                    </div>
-                    <div>
-                      <span className="data-label">Due</span>
-                      <b>{formatTaskDueDate(task.dueDate)}</b>
-                    </div>
-                    <div>
-                      <span className={`status-chip ${task.tone}`}>{task.assignee}</span>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      className="row-hitbox"
+                      onClick={() => setSelectedTaskId(task.id)}
+                    >
+                      <div>
+                        <strong>{task.title}</strong>
+                        <p>{task.description || task.relatedLabel}</p>
+                      </div>
+                      <div>
+                        <span className="data-label">Status</span>
+                        <b>{formatStatus(task.status)}</b>
+                      </div>
+                      <div>
+                        <span className="data-label">Priority</span>
+                        <b>{formatPriority(task.priority)}</b>
+                      </div>
+                      <div>
+                        <span className="data-label">Due</span>
+                        <b>{formatTaskDueDate(task.dueDate)}</b>
+                      </div>
+                      <div>
+                        <span className={`status-chip ${task.tone}`}>{task.assignee}</span>
+                      </div>
+                    </button>
 
-                  <button
-                    type="button"
-                    className="ghost-button compact-button"
-                    onClick={() => openEdit(task.id)}
-                  >
-                    Edit
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <button
+                      type="button"
+                      className="ghost-button compact-button"
+                      onClick={() => openEdit(task.id)}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                actionLabel="Create task"
+                description="Create follow-ups, assign owners, and connect the work directly to contacts or opportunities."
+                onAction={openCreate}
+                title="No tasks yet"
+              />
+            )}
           </article>
         </div>
 
@@ -421,9 +465,37 @@ export function TasksWorkspace() {
                   </button>
                 </div>
 
+                {selectedTask.relatedType && selectedTask.relatedId ? (
+                  <div className="context-link-row">
+                    <button
+                      type="button"
+                      className="ghost-button compact-button context-link-button"
+                      onClick={() =>
+                        navigateToRoute(
+                          selectedTask.relatedType === 'lead'
+                            ? 'pipeline'
+                            : selectedTask.relatedType === 'quote'
+                              ? 'quotes'
+                              : selectedTask.relatedType === 'contract'
+                                ? 'contracts'
+                                : 'contacts',
+                          { selected: selectedTask.relatedId || undefined },
+                        )
+                      }
+                    >
+                      Open linked {selectedTask.relatedType}
+                    </button>
+                  </div>
+                ) : null}
+
                 {saveError ? <p className="auth-error">{saveError}</p> : null}
               </div>
-            ) : null}
+            ) : (
+              <EmptyState
+                description="Select a task to inspect assignment, due dates, and the linked CRM record."
+                title="No task selected"
+              />
+            )}
           </article>
         </div>
       </section>

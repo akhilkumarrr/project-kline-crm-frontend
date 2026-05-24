@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
+import { EmptyState } from '../EmptyState'
 import { EntityEmailPanel } from '../email/EntityEmailPanel'
 import { LoadState } from '../LoadState'
 import { QuoteEditor, createEmptyQuoteForm, type QuoteFormState } from './QuoteEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import {
+  navigateToRoute,
+  readHashParam,
+  readHashRouteState,
+  replaceHashRoute,
+} from '../../lib/navigation'
 import {
   api,
   type QuoteLineItem,
@@ -13,6 +20,7 @@ import {
 
 type QuoteViewModel = {
   contactEmail?: string | null
+  contactId: string
   contactLabel: string
   createdBy: string
   id: string
@@ -72,6 +80,7 @@ const buildTone = (status?: string) => {
 
 const mapQuote = (quote: QuoteRecord): QuoteViewModel => ({
   contactEmail: quote.contact?.email || null,
+  contactId: quote.contactId,
   contactLabel:
     `${quote.contact?.firstName || ''} ${quote.contact?.lastName || ''}`.trim() ||
     quote.contact?.company ||
@@ -177,6 +186,24 @@ export function QuotesWorkspace() {
   const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
+    const syncSelectedFromHash = () => {
+      if (readHashRouteState().route !== 'quotes') {
+        return
+      }
+
+      const nextSelected = readHashParam('selected')
+      if (nextSelected) {
+        setSelectedQuoteId(nextSelected)
+      }
+    }
+
+    syncSelectedFromHash()
+    window.addEventListener('hashchange', syncSelectedFromHash)
+
+    return () => window.removeEventListener('hashchange', syncSelectedFromHash)
+  }, [])
+
+  useEffect(() => {
     if (!selectedQuoteId && quotes.length) {
       setSelectedQuoteId(quotes[0].id)
     }
@@ -185,6 +212,14 @@ export function QuotesWorkspace() {
   const quoteViews = quotes.map(mapQuote)
   const selectedQuote =
     quoteViews.find((quote) => quote.id === selectedQuoteId) || quoteViews[0] || null
+
+  useEffect(() => {
+    if (!selectedQuoteId || readHashRouteState().route !== 'quotes') {
+      return
+    }
+
+    replaceHashRoute('quotes', { selected: selectedQuoteId })
+  }, [selectedQuoteId])
 
   const groupedQuotes = useMemo(
     () =>
@@ -378,55 +413,64 @@ export function QuotesWorkspace() {
               title="Loading quotes"
             />
 
-            <div className="revenue-board">
-              {groupedQuotes.map((group) => (
-                <section className="revenue-column" key={group.status}>
-                  <header className="revenue-column-header">
-                    <strong>{formatTitleCase(group.status)}</strong>
-                    <span>{group.quotes.length} quotes</span>
-                  </header>
-                  <div className="revenue-stack">
-                    {group.quotes.length ? (
-                      group.quotes.map((quote) => (
-                        <article
-                          className={
-                            quote.id === selectedQuote?.id
-                              ? 'revenue-card selected-revenue-card'
-                              : 'revenue-card'
-                          }
-                          key={quote.id}
-                        >
-                          <button
-                            type="button"
-                            className="schedule-button"
-                            onClick={() => setSelectedQuoteId(quote.id)}
+            {quoteViews.length ? (
+              <div className="revenue-board">
+                {groupedQuotes.map((group) => (
+                  <section className="revenue-column" key={group.status}>
+                    <header className="revenue-column-header">
+                      <strong>{formatTitleCase(group.status)}</strong>
+                      <span>{group.quotes.length} quotes</span>
+                    </header>
+                    <div className="revenue-stack">
+                      {group.quotes.length ? (
+                        group.quotes.map((quote) => (
+                          <article
+                            className={
+                              quote.id === selectedQuote?.id
+                                ? 'revenue-card selected-revenue-card'
+                                : 'revenue-card'
+                            }
+                            key={quote.id}
                           >
-                            <div className="schedule-topline">
-                              <span className={`schedule-tag ${quote.tone}`}>
-                                {formatTitleCase(quote.status)}
-                              </span>
-                              <b>{formatCurrency(quote.total)}</b>
-                            </div>
-                            <strong>{quote.quoteNumber}</strong>
-                            <p>{quote.contactLabel}</p>
-                          </button>
+                            <button
+                              type="button"
+                              className="schedule-button"
+                              onClick={() => setSelectedQuoteId(quote.id)}
+                            >
+                              <div className="schedule-topline">
+                                <span className={`schedule-tag ${quote.tone}`}>
+                                  {formatTitleCase(quote.status)}
+                                </span>
+                                <b>{formatCurrency(quote.total)}</b>
+                              </div>
+                              <strong>{quote.quoteNumber}</strong>
+                              <p>{quote.contactLabel}</p>
+                            </button>
 
-                          <button
-                            type="button"
-                            className="ghost-button compact-button"
-                            onClick={() => openEdit(quote.id)}
-                          >
-                            Edit
-                          </button>
-                        </article>
-                      ))
-                    ) : (
-                      <div className="empty-card">No quotes in this stage.</div>
-                    )}
-                  </div>
-                </section>
-              ))}
-            </div>
+                            <button
+                              type="button"
+                              className="ghost-button compact-button"
+                              onClick={() => openEdit(quote.id)}
+                            >
+                              Edit
+                            </button>
+                          </article>
+                        ))
+                      ) : (
+                        <div className="empty-card">No quotes in this stage.</div>
+                      )}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                actionLabel="Create quote"
+                description="Start a proposal to track line items, stage movement, customer delivery, and revenue at risk."
+                onAction={openCreate}
+                title="No quotes yet"
+              />
+            )}
           </article>
         </div>
 
@@ -517,6 +561,16 @@ export function QuotesWorkspace() {
                   <p>{selectedQuote.notes || 'No notes added to this quote yet.'}</p>
                 </div>
 
+                <div className="context-link-row">
+                  <button
+                    type="button"
+                    className="ghost-button compact-button context-link-button"
+                    onClick={() => navigateToRoute('contacts', { selected: selectedQuote.contactId })}
+                  >
+                    Open contact
+                  </button>
+                </div>
+
                 <EntityEmailPanel
                   defaultToEmail={selectedQuote.contactEmail}
                   entityId={selectedQuote.id}
@@ -526,7 +580,10 @@ export function QuotesWorkspace() {
                 />
               </div>
             ) : (
-              <div className="empty-card">Select a quote to see the full proposal summary.</div>
+              <EmptyState
+                description="Select a quote to inspect proposal totals, line items, customer context, and email history."
+                title="No quote selected"
+              />
             )}
           </article>
         </div>

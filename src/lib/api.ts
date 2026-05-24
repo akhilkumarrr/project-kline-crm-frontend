@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = 'http://localhost:3000/api/v1'
+const DEFAULT_API_BASE_URL = '/api/v1'
 const TOKEN_STORAGE_KEY = 'project-kline-crm-token'
 
 type RequestOptions = {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ActivityTimeline } from '../components/activities/ActivityTimeline'
+import { EmptyState } from '../components/EmptyState'
 import { NoteComposer } from '../components/activities/NoteComposer'
 import { LeadEditor, createEmptyLeadForm } from '../components/leads/LeadEditor'
 import { LoadState } from '../components/LoadState'
@@ -7,6 +8,12 @@ import { dealForecast, pipelineColumns } from '../data/crm-data'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
+import {
+  navigateToRoute,
+  readHashParam,
+  readHashRouteState,
+  replaceHashRoute,
+} from '../lib/navigation'
 import { api, type ContactRecord, type LeadPayload, type LeadRecord } from '../lib/api'
 
 type PipelineDealView = {
@@ -187,6 +194,24 @@ export function PipelinePage() {
   )
 
   useEffect(() => {
+    const syncSelectedFromHash = () => {
+      if (readHashRouteState().route !== 'pipeline') {
+        return
+      }
+
+      const nextSelected = readHashParam('selected')
+      if (nextSelected) {
+        setSelectedLeadId(nextSelected)
+      }
+    }
+
+    syncSelectedFromHash()
+    window.addEventListener('hashchange', syncSelectedFromHash)
+
+    return () => window.removeEventListener('hashchange', syncSelectedFromHash)
+  }, [])
+
+  useEffect(() => {
     const firstDeal = groupedColumns.flatMap((column) => column.deals)[0]
     if (!selectedLeadId && firstDeal) {
       setSelectedLeadId(firstDeal.id)
@@ -201,6 +226,14 @@ export function PipelinePage() {
       setSelectedLeadId(firstDeal.id)
     }
   }, [groupedColumns, selectedLeadId])
+
+  useEffect(() => {
+    if (!isLiveSelectedLead || !selectedLeadId || readHashRouteState().route !== 'pipeline') {
+      return
+    }
+
+    replaceHashRoute('pipeline', { selected: selectedLeadId })
+  }, [isLiveSelectedLead, selectedLeadId])
 
   const handleFormChange = (field: keyof LeadPayload, value: string) => {
     setForm((current) => ({
@@ -327,58 +360,67 @@ export function PipelinePage() {
               title="Loading pipeline"
             />
 
-            <div className="pipeline-board">
-              {groupedColumns.map((column) => (
-                <section className="pipeline-column" key={column.stage}>
-                  <header>
-                    <div>
-                      <strong>{formatStage(column.stage)}</strong>
-                      <span>{column.count} deals</span>
-                    </div>
-                    <b>{column.value}</b>
-                  </header>
-                  <div className="deal-stack">
-                    {column.deals.length ? (
-                      column.deals.map((deal) => (
-                        <article
-                          className={
-                            deal.id === selectedLead?.id ? 'deal-card selected-deal' : 'deal-card'
-                          }
-                          key={deal.id}
-                        >
-                          <button
-                            type="button"
-                            className="deal-button"
-                            onClick={() => setSelectedLeadId(deal.id)}
+            {groupedColumns.flatMap((column) => column.deals).length ? (
+              <div className="pipeline-board">
+                {groupedColumns.map((column) => (
+                  <section className="pipeline-column" key={column.stage}>
+                    <header>
+                      <div>
+                        <strong>{formatStage(column.stage)}</strong>
+                        <span>{column.count} deals</span>
+                      </div>
+                      <b>{column.value}</b>
+                    </header>
+                    <div className="deal-stack">
+                      {column.deals.length ? (
+                        column.deals.map((deal) => (
+                          <article
+                            className={
+                              deal.id === selectedLead?.id ? 'deal-card selected-deal' : 'deal-card'
+                            }
+                            key={deal.id}
                           >
-                            <div className="deal-row">
-                              <strong>{deal.name}</strong>
-                              <span>{deal.owner}</span>
-                            </div>
-                            <p>{deal.summary}</p>
-                            <div className="deal-row">
-                              <b>{deal.amount}</b>
-                              <span>{deal.nextStep}</span>
-                            </div>
-                          </button>
-                          {deal.id.startsWith('mock-') ? null : (
                             <button
                               type="button"
-                              className="ghost-button compact-button"
-                              onClick={() => openEdit(deal.id)}
+                              className="deal-button"
+                              onClick={() => setSelectedLeadId(deal.id)}
                             >
-                              Edit
+                              <div className="deal-row">
+                                <strong>{deal.name}</strong>
+                                <span>{deal.owner}</span>
+                              </div>
+                              <p>{deal.summary}</p>
+                              <div className="deal-row">
+                                <b>{deal.amount}</b>
+                                <span>{deal.nextStep}</span>
+                              </div>
                             </button>
-                          )}
-                        </article>
-                      ))
-                    ) : (
-                      <div className="empty-card">No leads in this stage yet.</div>
-                    )}
-                  </div>
-                </section>
-              ))}
-            </div>
+                            {deal.id.startsWith('mock-') ? null : (
+                              <button
+                                type="button"
+                                className="ghost-button compact-button"
+                                onClick={() => openEdit(deal.id)}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </article>
+                        ))
+                      ) : (
+                        <div className="empty-card">No leads in this stage yet.</div>
+                      )}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                actionLabel="Create lead"
+                description="Create your first opportunity to start tracking pipeline movement, forecast value, and buyer notes."
+                onAction={openCreate}
+                title="No live opportunities yet"
+              />
+            )}
           </article>
         </div>
 
@@ -433,8 +475,25 @@ export function PipelinePage() {
                   <span className="data-label">Notes</span>
                   <p>{selectedLead.notes || selectedLead.summary || 'No notes yet for this lead.'}</p>
                 </div>
+
+                {!selectedLead.id.startsWith('mock-') ? (
+                  <div className="context-link-row">
+                    <button
+                      type="button"
+                      className="ghost-button compact-button context-link-button"
+                      onClick={() => navigateToRoute('contacts', { selected: selectedLead.contactId })}
+                    >
+                      Open contact
+                    </button>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
+            ) : (
+              <EmptyState
+                description="Select an opportunity to inspect deal context, buyer notes, and the linked account."
+                title="No opportunity selected"
+              />
+            )}
           </article>
 
           <article className="surface-card">

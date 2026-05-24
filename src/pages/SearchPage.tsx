@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { navigateToRoute } from '../lib/navigation'
 import { LoadState } from '../components/LoadState'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
@@ -255,9 +256,16 @@ export function SearchPage() {
         <strong>{`${contact.firstName} ${contact.lastName}`.trim()}</strong>
         <p>{contact.company || contact.email}</p>
       </div>
-      <div className="row-meta">
+      <div className="inline-actions">
         <b>{contact.status || 'active'}</b>
         <span>{contact.phone || 'No phone'}</span>
+        <button
+          type="button"
+          className="ghost-button compact-button"
+          onClick={() => navigateToRoute('contacts', { selected: contact.id })}
+        >
+          Open
+        </button>
       </div>
     </div>
   )
@@ -268,9 +276,16 @@ export function SearchPage() {
         <strong>{lead.title}</strong>
         <p>{lead.contact?.company || lead.contact?.email || 'Lead record'}</p>
       </div>
-      <div className="row-meta">
+      <div className="inline-actions">
         <b>{lead.stage || 'new'}</b>
         <span>{lead.source || 'Unknown source'}</span>
+        <button
+          type="button"
+          className="ghost-button compact-button"
+          onClick={() => navigateToRoute('pipeline', { selected: lead.id })}
+        >
+          Open
+        </button>
       </div>
     </div>
   )
@@ -281,9 +296,16 @@ export function SearchPage() {
         <strong>{quote.quoteNumber}</strong>
         <p>{quote.contact?.company || quote.contact?.email || 'Quote record'}</p>
       </div>
-      <div className="row-meta">
+      <div className="inline-actions">
         <b>{quote.status || 'draft'}</b>
         <span>${Number(quote.total || 0).toLocaleString()}</span>
+        <button
+          type="button"
+          className="ghost-button compact-button"
+          onClick={() => navigateToRoute('quotes', { selected: quote.id })}
+        >
+          Open
+        </button>
       </div>
     </div>
   )
@@ -294,9 +316,16 @@ export function SearchPage() {
         <strong>{contract.title}</strong>
         <p>{contract.contractNumber}</p>
       </div>
-      <div className="row-meta">
+      <div className="inline-actions">
         <b>{contract.status || 'draft'}</b>
         <span>{formatDate(contract.endDate)}</span>
+        <button
+          type="button"
+          className="ghost-button compact-button"
+          onClick={() => navigateToRoute('contracts', { selected: contract.id })}
+        >
+          Open
+        </button>
       </div>
     </div>
   )
@@ -307,9 +336,16 @@ export function SearchPage() {
         <strong>{task.title}</strong>
         <p>{task.description || 'Task record'}</p>
       </div>
-      <div className="row-meta">
+      <div className="inline-actions">
         <b>{task.status || 'todo'}</b>
         <span>{task.priority || 'medium'}</span>
+        <button
+          type="button"
+          className="ghost-button compact-button"
+          onClick={() => navigateToRoute('tasks', { selected: task.id })}
+        >
+          Open
+        </button>
       </div>
     </div>
   )

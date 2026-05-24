@@ -61,7 +61,7 @@ export function LoginPage({ error, isLoading, onSubmit }: LoginPageProps) {
         </button>
 
         <p className="auth-note">
-          API target: <code>{import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}</code>
+          API target: <code>{import.meta.env.VITE_API_BASE_URL || '/api/v1'}</code>
         </p>
       </form>
     </main>

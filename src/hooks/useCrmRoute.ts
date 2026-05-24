@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
+import { buildHashRoute, readHashRouteState } from '../lib/navigation'
 
 const readHashRoute = (fallback: string) => {
-  const raw = window.location.hash.replace(/^#\/?/, '').trim()
-  return raw.split('?')[0] || fallback
+  return readHashRouteState().route || fallback
 }
 
 export function useCrmRoute(fallback: string) {
@@ -27,7 +27,7 @@ export function useCrmRoute(fallback: string) {
       return
     }
 
-    window.location.hash = `/${nextRoute}`
+    window.location.hash = buildHashRoute(nextRoute)
   }
 
   return { route, navigate }

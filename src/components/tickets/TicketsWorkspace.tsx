@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
+import { EmptyState } from '../EmptyState'
 import { LoadState } from '../LoadState'
 import { TicketEditor, createEmptyTicketForm } from './TicketEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import {
+  navigateToRoute,
+  readHashParam,
+  readHashRouteState,
+  replaceHashRoute,
+} from '../../lib/navigation'
 import {
   api,
   type ContactRecord,
@@ -13,6 +20,7 @@ import {
 
 type TicketViewModel = {
   assignee: string
+  contactId: string
   contactLabel: string
   createdAt?: string
   description: string
@@ -65,6 +73,7 @@ const mapTicket = (ticket: TicketRecord): TicketViewModel => ({
     `${ticket.assignedUser?.firstName || ''} ${ticket.assignedUser?.lastName || ''}`.trim() ||
     ticket.assignedUser?.email ||
     'Unassigned',
+  contactId: ticket.contactId,
   contactLabel:
     `${ticket.contact?.firstName || ''} ${ticket.contact?.lastName || ''}`.trim() ||
     ticket.contact?.company ||
@@ -114,6 +123,24 @@ export function TicketsWorkspace() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  useEffect(() => {
+    const syncSelectedFromHash = () => {
+      if (readHashRouteState().route !== 'tickets') {
+        return
+      }
+
+      const nextSelected = readHashParam('selected')
+      if (nextSelected) {
+        setSelectedTicketId(nextSelected)
+      }
+    }
+
+    syncSelectedFromHash()
+    window.addEventListener('hashchange', syncSelectedFromHash)
+
+    return () => window.removeEventListener('hashchange', syncSelectedFromHash)
+  }, [])
+
   const ticketsQuery = useApiQuery(
     Boolean(token),
     () => api.getTickets(token!),
@@ -160,6 +187,14 @@ export function TicketsWorkspace() {
       setSelectedTicketId(tickets[0].id)
     }
   }, [selectedTicketId, tickets])
+
+  useEffect(() => {
+    if (!selectedTicketId || readHashRouteState().route !== 'tickets') {
+      return
+    }
+
+    replaceHashRoute('tickets', { selected: selectedTicketId })
+  }, [selectedTicketId])
 
   const handleFormChange = (field: keyof TicketPayload, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
@@ -251,56 +286,65 @@ export function TicketsWorkspace() {
               title="Loading tickets"
             />
 
-            <div className="support-board">
-              {groupedTickets.map((group) => (
-                <section className="support-column" key={group.status}>
-                  <header className="support-day">
-                    <strong>{formatTitleCase(group.status)}</strong>
-                    <span>{group.items.length} tickets</span>
-                  </header>
+            {tickets.length ? (
+              <div className="support-board">
+                {groupedTickets.map((group) => (
+                  <section className="support-column" key={group.status}>
+                    <header className="support-day">
+                      <strong>{formatTitleCase(group.status)}</strong>
+                      <span>{group.items.length} tickets</span>
+                    </header>
 
-                  <div className="support-stack">
-                    {group.items.length ? (
-                      group.items.map((ticket) => (
-                        <article
-                          className={
-                            ticket.id === selectedTicket?.id
-                              ? 'support-card selected-support-card'
-                              : 'support-card'
-                          }
-                          key={ticket.id}
-                        >
-                          <button
-                            type="button"
-                            className="schedule-button"
-                            onClick={() => setSelectedTicketId(ticket.id)}
+                    <div className="support-stack">
+                      {group.items.length ? (
+                        group.items.map((ticket) => (
+                          <article
+                            className={
+                              ticket.id === selectedTicket?.id
+                                ? 'support-card selected-support-card'
+                                : 'support-card'
+                            }
+                            key={ticket.id}
                           >
-                            <div className="schedule-topline">
-                              <span className={`schedule-tag ${ticket.tone}`}>
-                                {formatTitleCase(ticket.priority)}
-                              </span>
-                              <b>{ticket.ticketNumber}</b>
-                            </div>
-                            <strong>{ticket.subject}</strong>
-                            <p>{ticket.contactLabel}</p>
-                          </button>
+                            <button
+                              type="button"
+                              className="schedule-button"
+                              onClick={() => setSelectedTicketId(ticket.id)}
+                            >
+                              <div className="schedule-topline">
+                                <span className={`schedule-tag ${ticket.tone}`}>
+                                  {formatTitleCase(ticket.priority)}
+                                </span>
+                                <b>{ticket.ticketNumber}</b>
+                              </div>
+                              <strong>{ticket.subject}</strong>
+                              <p>{ticket.contactLabel}</p>
+                            </button>
 
-                          <button
-                            type="button"
-                            className="ghost-button compact-button"
-                            onClick={() => openEdit(ticket.id)}
-                          >
-                            Edit
-                          </button>
-                        </article>
-                      ))
-                    ) : (
-                      <div className="empty-card">No tickets in this status.</div>
-                    )}
-                  </div>
-                </section>
-              ))}
-            </div>
+                            <button
+                              type="button"
+                              className="ghost-button compact-button"
+                              onClick={() => openEdit(ticket.id)}
+                            >
+                              Edit
+                            </button>
+                          </article>
+                        ))
+                      ) : (
+                        <div className="empty-card">No tickets in this status.</div>
+                      )}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                actionLabel="Create ticket"
+                description="Capture customer issues, assign owners, and keep support work visible alongside the rest of the CRM."
+                onAction={openCreate}
+                title="No tickets yet"
+              />
+            )}
           </article>
         </div>
 
@@ -360,8 +404,23 @@ export function TicketsWorkspace() {
                   <span className="data-label">Created</span>
                   <p>{formatDate(selectedTicket.createdAt)}</p>
                 </div>
+
+                <div className="context-link-row">
+                  <button
+                    type="button"
+                    className="ghost-button compact-button context-link-button"
+                    onClick={() => navigateToRoute('contacts', { selected: selectedTicket.contactId })}
+                  >
+                    Open contact
+                  </button>
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <EmptyState
+                description="Select a ticket to review the issue, assignee, and linked customer record."
+                title="No ticket selected"
+              />
+            )}
           </article>
         </div>
       </section>

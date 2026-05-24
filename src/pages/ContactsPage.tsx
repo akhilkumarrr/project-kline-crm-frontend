@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ActivityTimeline } from '../components/activities/ActivityTimeline'
+import { EmptyState } from '../components/EmptyState'
 import { NoteComposer } from '../components/activities/NoteComposer'
 import { ContactEditor, createEmptyContactForm } from '../components/contacts/ContactEditor'
 import { LoadState } from '../components/LoadState'
@@ -7,6 +8,7 @@ import { contactRecords } from '../data/crm-data'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
+import { readHashParam, readHashRouteState, replaceHashRoute } from '../lib/navigation'
 import { api, type ContactPayload, type ContactRecord } from '../lib/api'
 
 type ContactViewModel = {
@@ -123,6 +125,24 @@ export function ContactsPage() {
   )
 
   useEffect(() => {
+    const syncSelectedFromHash = () => {
+      if (readHashRouteState().route !== 'contacts') {
+        return
+      }
+
+      const nextSelected = readHashParam('selected')
+      if (nextSelected) {
+        setSelectedContactId(nextSelected)
+      }
+    }
+
+    syncSelectedFromHash()
+    window.addEventListener('hashchange', syncSelectedFromHash)
+
+    return () => window.removeEventListener('hashchange', syncSelectedFromHash)
+  }, [])
+
+  useEffect(() => {
     if (!selectedContactId && contacts[0]) {
       setSelectedContactId(contacts[0].id)
       return
@@ -132,6 +152,14 @@ export function ContactsPage() {
       setSelectedContactId(contacts[0].id)
     }
   }, [contacts, selectedContactId])
+
+  useEffect(() => {
+    if (!isLiveSelectedContact || !selectedContactId || readHashRouteState().route !== 'contacts') {
+      return
+    }
+
+    replaceHashRoute('contacts', { selected: selectedContactId })
+  }, [isLiveSelectedContact, selectedContactId])
 
   const handleFormChange = (field: keyof ContactPayload, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
@@ -246,54 +274,63 @@ export function ContactsPage() {
 
             <LoadState loading={loading} error={error} title="Loading contacts" />
 
-            <div className="table-list">
-              {contacts.map((contact) => (
-                <div
-                  className={
-                    contact.id === selectedContact?.id
-                      ? 'table-row contact-row selected'
-                      : 'table-row contact-row'
-                  }
-                  key={contact.id}
-                >
-                  <button
-                    type="button"
-                    className="row-hitbox"
-                    onClick={() => setSelectedContactId(contact.id)}
+            {contacts.length ? (
+              <div className="table-list">
+                {contacts.map((contact) => (
+                  <div
+                    className={
+                      contact.id === selectedContact?.id
+                        ? 'table-row contact-row selected'
+                        : 'table-row contact-row'
+                    }
+                    key={contact.id}
                   >
-                    <div>
-                      <strong>{contact.name}</strong>
-                      <p>{contact.company}</p>
-                    </div>
-                    <div>
-                      <span className="data-label">Stage</span>
-                      <b>{contact.stage}</b>
-                    </div>
-                    <div>
-                      <span className="data-label">Owner</span>
-                      <b>{contact.owner}</b>
-                    </div>
-                    <div>
-                      <span className="data-label">Title</span>
-                      <b>{contact.value}</b>
-                    </div>
-                    <div>
-                      <span className={`status-chip ${contact.healthTone}`}>{contact.health}</span>
-                    </div>
-                  </button>
-
-                  {contact.id.startsWith('mock-') ? null : (
                     <button
                       type="button"
-                      className="ghost-button compact-button"
-                      onClick={() => openEdit(contact.id)}
+                      className="row-hitbox"
+                      onClick={() => setSelectedContactId(contact.id)}
                     >
-                      Edit
+                      <div>
+                        <strong>{contact.name}</strong>
+                        <p>{contact.company}</p>
+                      </div>
+                      <div>
+                        <span className="data-label">Stage</span>
+                        <b>{contact.stage}</b>
+                      </div>
+                      <div>
+                        <span className="data-label">Owner</span>
+                        <b>{contact.owner}</b>
+                      </div>
+                      <div>
+                        <span className="data-label">Title</span>
+                        <b>{contact.value}</b>
+                      </div>
+                      <div>
+                        <span className={`status-chip ${contact.healthTone}`}>{contact.health}</span>
+                      </div>
                     </button>
-                  )}
-                </div>
-              ))}
-            </div>
+
+                    {contact.id.startsWith('mock-') ? null : (
+                      <button
+                        type="button"
+                        className="ghost-button compact-button"
+                        onClick={() => openEdit(contact.id)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                actionLabel="Create contact"
+                description="Create your first customer record to start tracking relationships, revenue, and timeline activity."
+                onAction={openCreate}
+                title="No contacts yet"
+              />
+            )}
           </article>
         </div>
 
@@ -349,7 +386,12 @@ export function ContactsPage() {
                   <p>{selectedContact.notes || 'No notes yet for this contact.'}</p>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <EmptyState
+                description="Pick a customer from the list to inspect their profile, notes, and communication history."
+                title="No contact selected"
+              />
+            )}
           </article>
 
           <article className="surface-card">

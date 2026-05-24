@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
+import { EmptyState } from '../EmptyState'
 import { LoadState } from '../LoadState'
 import { InvoiceEditor, createEmptyInvoiceForm } from './InvoiceEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import {
+  navigateToRoute,
+  readHashParam,
+  readHashRouteState,
+  replaceHashRoute,
+} from '../../lib/navigation'
 import {
   api,
   type ContactRecord,
@@ -12,6 +19,7 @@ import {
 
 type InvoiceViewModel = {
   balanceDue: number
+  contactId: string
   contactLabel: string
   dueDate?: string | null
   id: string
@@ -20,6 +28,8 @@ type InvoiceViewModel = {
   notes?: string | null
   paidAmount: number
   paymentMethod?: string | null
+  quoteId?: string | null
+  contractId?: string | null
   status: string
   tone: string
   totalAmount: number
@@ -72,6 +82,7 @@ const mapInvoice = (invoice: InvoiceRecord): InvoiceViewModel => {
 
   return {
     balanceDue,
+    contactId: invoice.contactId,
     contactLabel:
       `${invoice.contact?.firstName || ''} ${invoice.contact?.lastName || ''}`.trim() ||
       invoice.contact?.company ||
@@ -84,6 +95,8 @@ const mapInvoice = (invoice: InvoiceRecord): InvoiceViewModel => {
     notes: invoice.notes,
     paidAmount,
     paymentMethod: invoice.paymentMethod,
+    quoteId: invoice.quoteId,
+    contractId: invoice.contractId,
     status: invoice.status || 'draft',
     tone: buildInvoiceTone(invoice.status),
     totalAmount,
@@ -127,6 +140,24 @@ export function InvoicesWorkspace() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  useEffect(() => {
+    const syncSelectedFromHash = () => {
+      if (readHashRouteState().route !== 'invoices') {
+        return
+      }
+
+      const nextSelected = readHashParam('selected')
+      if (nextSelected) {
+        setSelectedInvoiceId(nextSelected)
+      }
+    }
+
+    syncSelectedFromHash()
+    window.addEventListener('hashchange', syncSelectedFromHash)
+
+    return () => window.removeEventListener('hashchange', syncSelectedFromHash)
+  }, [])
+
   const invoicesQuery = useApiQuery(
     Boolean(token),
     () => api.getInvoices(token!),
@@ -167,6 +198,14 @@ export function InvoicesWorkspace() {
       setSelectedInvoiceId(invoices[0].id)
     }
   }, [invoices, selectedInvoiceId])
+
+  useEffect(() => {
+    if (!selectedInvoiceId || readHashRouteState().route !== 'invoices') {
+      return
+    }
+
+    replaceHashRoute('invoices', { selected: selectedInvoiceId })
+  }, [selectedInvoiceId])
 
   const handleFormChange = (field: keyof InvoicePayload, value: string) => {
     setForm((current) => ({
@@ -264,56 +303,65 @@ export function InvoicesWorkspace() {
               title="Loading invoices"
             />
 
-            <div className="finance-board">
-              {groupedInvoices.map((group) => (
-                <section className="finance-column" key={group.status}>
-                  <header className="finance-day">
-                    <strong>{formatTitleCase(group.status)}</strong>
-                    <span>{group.invoices.length} invoices</span>
-                  </header>
+            {invoices.length ? (
+              <div className="finance-board">
+                {groupedInvoices.map((group) => (
+                  <section className="finance-column" key={group.status}>
+                    <header className="finance-day">
+                      <strong>{formatTitleCase(group.status)}</strong>
+                      <span>{group.invoices.length} invoices</span>
+                    </header>
 
-                  <div className="finance-stack">
-                    {group.invoices.length ? (
-                      group.invoices.map((invoice) => (
-                        <article
-                          className={
-                            invoice.id === selectedInvoice?.id
-                              ? 'finance-card selected-finance-card'
-                              : 'finance-card'
-                          }
-                          key={invoice.id}
-                        >
-                          <button
-                            type="button"
-                            className="schedule-button"
-                            onClick={() => setSelectedInvoiceId(invoice.id)}
+                    <div className="finance-stack">
+                      {group.invoices.length ? (
+                        group.invoices.map((invoice) => (
+                          <article
+                            className={
+                              invoice.id === selectedInvoice?.id
+                                ? 'finance-card selected-finance-card'
+                                : 'finance-card'
+                            }
+                            key={invoice.id}
                           >
-                            <div className="schedule-topline">
-                              <span className={`schedule-tag ${invoice.tone}`}>
-                                {formatTitleCase(invoice.status)}
-                              </span>
-                              <b>{formatCurrency(invoice.balanceDue)}</b>
-                            </div>
-                            <strong>{invoice.invoiceNumber}</strong>
-                            <p>{invoice.contactLabel}</p>
-                          </button>
+                            <button
+                              type="button"
+                              className="schedule-button"
+                              onClick={() => setSelectedInvoiceId(invoice.id)}
+                            >
+                              <div className="schedule-topline">
+                                <span className={`schedule-tag ${invoice.tone}`}>
+                                  {formatTitleCase(invoice.status)}
+                                </span>
+                                <b>{formatCurrency(invoice.balanceDue)}</b>
+                              </div>
+                              <strong>{invoice.invoiceNumber}</strong>
+                              <p>{invoice.contactLabel}</p>
+                            </button>
 
-                          <button
-                            type="button"
-                            className="ghost-button compact-button"
-                            onClick={() => openEdit(invoice.id)}
-                          >
-                            Edit
-                          </button>
-                        </article>
-                      ))
-                    ) : (
-                      <div className="empty-card">No invoices in this status.</div>
-                    )}
-                  </div>
-                </section>
-              ))}
-            </div>
+                            <button
+                              type="button"
+                              className="ghost-button compact-button"
+                              onClick={() => openEdit(invoice.id)}
+                            >
+                              Edit
+                            </button>
+                          </article>
+                        ))
+                      ) : (
+                        <div className="empty-card">No invoices in this status.</div>
+                      )}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                actionLabel="Create invoice"
+                description="Add invoices to track open balances, payment status, and downstream revenue collection."
+                onAction={openCreate}
+                title="No invoices yet"
+              />
+            )}
           </article>
         </div>
 
@@ -379,8 +427,41 @@ export function InvoicesWorkspace() {
                   <span className="data-label">Notes</span>
                   <p>{selectedInvoice.notes || 'No notes have been added to this invoice yet.'}</p>
                 </div>
+
+                <div className="context-link-row">
+                  <button
+                    type="button"
+                    className="ghost-button compact-button context-link-button"
+                    onClick={() => navigateToRoute('contacts', { selected: selectedInvoice.contactId })}
+                  >
+                    Open contact
+                  </button>
+                  {selectedInvoice.quoteId ? (
+                    <button
+                      type="button"
+                      className="ghost-button compact-button context-link-button"
+                      onClick={() => navigateToRoute('quotes', { selected: selectedInvoice.quoteId })}
+                    >
+                      Open quote
+                    </button>
+                  ) : null}
+                  {selectedInvoice.contractId ? (
+                    <button
+                      type="button"
+                      className="ghost-button compact-button context-link-button"
+                      onClick={() => navigateToRoute('contracts', { selected: selectedInvoice.contractId })}
+                    >
+                      Open contract
+                    </button>
+                  ) : null}
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <EmptyState
+                description="Select an invoice to inspect balances, payment history, and linked CRM records."
+                title="No invoice selected"
+              />
+            )}
           </article>
         </div>
       </section>

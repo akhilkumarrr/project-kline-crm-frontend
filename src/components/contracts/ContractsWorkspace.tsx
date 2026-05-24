@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
+import { EmptyState } from '../EmptyState'
 import { EntityEmailPanel } from '../email/EntityEmailPanel'
 import { LoadState } from '../LoadState'
 import { ContractEditor, createEmptyContractForm, type ContractFormState } from './ContractEditor'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { useAuth } from '../../hooks/useAuth'
+import {
+  navigateToRoute,
+  readHashParam,
+  readHashRouteState,
+  replaceHashRoute,
+} from '../../lib/navigation'
 import {
   api,
   type ContractPayload,
@@ -12,6 +19,7 @@ import {
 
 type ContractViewModel = {
   contactEmail?: string | null
+  contactId: string
   contactLabel: string
   endDate?: string | null
   id: string
@@ -65,6 +73,7 @@ const buildTone = (status?: string) => {
 
 const mapContract = (contract: ContractRecord): ContractViewModel => ({
   contactEmail: contract.contact?.email || null,
+  contactId: contract.contactId,
   contactLabel:
     `${contract.contact?.firstName || ''} ${contract.contact?.lastName || ''}`.trim() ||
     contract.contact?.company ||
@@ -129,6 +138,24 @@ export function ContractsWorkspace() {
   const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
+    const syncSelectedFromHash = () => {
+      if (readHashRouteState().route !== 'contracts') {
+        return
+      }
+
+      const nextSelected = readHashParam('selected')
+      if (nextSelected) {
+        setSelectedContractId(nextSelected)
+      }
+    }
+
+    syncSelectedFromHash()
+    window.addEventListener('hashchange', syncSelectedFromHash)
+
+    return () => window.removeEventListener('hashchange', syncSelectedFromHash)
+  }, [])
+
+  useEffect(() => {
     if (!selectedContractId && contracts.length) {
       setSelectedContractId(contracts[0].id)
     }
@@ -139,6 +166,14 @@ export function ContractsWorkspace() {
     contractViews.find((contract) => contract.id === selectedContractId) ||
     contractViews[0] ||
     null
+
+  useEffect(() => {
+    if (!selectedContractId || readHashRouteState().route !== 'contracts') {
+      return
+    }
+
+    replaceHashRoute('contracts', { selected: selectedContractId })
+  }, [selectedContractId])
 
   const groupedContracts = useMemo(
     () =>
@@ -248,55 +283,64 @@ export function ContractsWorkspace() {
               title="Loading contracts"
             />
 
-            <div className="revenue-board">
-              {groupedContracts.map((group) => (
-                <section className="revenue-column" key={group.status}>
-                  <header className="revenue-column-header">
-                    <strong>{formatTitleCase(group.status)}</strong>
-                    <span>{group.contracts.length} contracts</span>
-                  </header>
-                  <div className="revenue-stack">
-                    {group.contracts.length ? (
-                      group.contracts.map((contract) => (
-                        <article
-                          className={
-                            contract.id === selectedContract?.id
-                              ? 'revenue-card selected-revenue-card'
-                              : 'revenue-card'
-                          }
-                          key={contract.id}
-                        >
-                          <button
-                            type="button"
-                            className="schedule-button"
-                            onClick={() => setSelectedContractId(contract.id)}
+            {contractViews.length ? (
+              <div className="revenue-board">
+                {groupedContracts.map((group) => (
+                  <section className="revenue-column" key={group.status}>
+                    <header className="revenue-column-header">
+                      <strong>{formatTitleCase(group.status)}</strong>
+                      <span>{group.contracts.length} contracts</span>
+                    </header>
+                    <div className="revenue-stack">
+                      {group.contracts.length ? (
+                        group.contracts.map((contract) => (
+                          <article
+                            className={
+                              contract.id === selectedContract?.id
+                                ? 'revenue-card selected-revenue-card'
+                                : 'revenue-card'
+                            }
+                            key={contract.id}
                           >
-                            <div className="schedule-topline">
-                              <span className={`schedule-tag ${contract.tone}`}>
-                                {formatTitleCase(contract.status)}
-                              </span>
-                              <b>{formatCurrency(contract.value)}</b>
-                            </div>
-                            <strong>{contract.title}</strong>
-                            <p>{contract.contactLabel}</p>
-                          </button>
+                            <button
+                              type="button"
+                              className="schedule-button"
+                              onClick={() => setSelectedContractId(contract.id)}
+                            >
+                              <div className="schedule-topline">
+                                <span className={`schedule-tag ${contract.tone}`}>
+                                  {formatTitleCase(contract.status)}
+                                </span>
+                                <b>{formatCurrency(contract.value)}</b>
+                              </div>
+                              <strong>{contract.title}</strong>
+                              <p>{contract.contactLabel}</p>
+                            </button>
 
-                          <button
-                            type="button"
-                            className="ghost-button compact-button"
-                            onClick={() => openEdit(contract.id)}
-                          >
-                            Edit
-                          </button>
-                        </article>
-                      ))
-                    ) : (
-                      <div className="empty-card">No contracts in this status.</div>
-                    )}
-                  </div>
-                </section>
-              ))}
-            </div>
+                            <button
+                              type="button"
+                              className="ghost-button compact-button"
+                              onClick={() => openEdit(contract.id)}
+                            >
+                              Edit
+                            </button>
+                          </article>
+                        ))
+                      ) : (
+                        <div className="empty-card">No contracts in this status.</div>
+                      )}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                actionLabel="Create contract"
+                description="Add active agreements so the team can track renewals, payment terms, and customer commitments."
+                onAction={openCreate}
+                title="No contracts yet"
+              />
+            )}
           </article>
         </div>
 
@@ -362,6 +406,16 @@ export function ContractsWorkspace() {
                   <p>{selectedContract.notes || 'No contract notes have been added yet.'}</p>
                 </div>
 
+                <div className="context-link-row">
+                  <button
+                    type="button"
+                    className="ghost-button compact-button context-link-button"
+                    onClick={() => navigateToRoute('contacts', { selected: selectedContract.contactId })}
+                  >
+                    Open contact
+                  </button>
+                </div>
+
                 <EntityEmailPanel
                   defaultToEmail={selectedContract.contactEmail}
                   entityId={selectedContract.id}
@@ -371,7 +425,10 @@ export function ContractsWorkspace() {
                 />
               </div>
             ) : (
-              <div className="empty-card">Select a contract to see the agreement summary.</div>
+              <EmptyState
+                description="Select a contract to inspect dates, terms, customer context, and delivery history."
+                title="No contract selected"
+              />
             )}
           </article>
         </div>
