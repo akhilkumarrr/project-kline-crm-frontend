@@ -37,6 +37,50 @@ export type PaginatedResponse<T> = {
   pages: number
 }
 
+export type ContactRecord = {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string | null
+  company?: string | null
+  jobTitle?: string | null
+  type?: string
+  status?: string
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zipCode?: string | null
+  country?: string | null
+  notes?: string | null
+  ownerId?: string
+  owner?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type ContactPayload = {
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+  company?: string
+  jobTitle?: string
+  type?: string
+  status?: string
+  address?: string
+  city?: string
+  state?: string
+  zipCode?: string
+  country?: string
+  notes?: string
+}
+
 const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 ).replace(/\/$/, '')
@@ -92,7 +136,21 @@ export const api = {
     return request<CurrentUser>('/auth/me', { token })
   },
   getContacts(token: string, page = 1, limit = 20) {
-    return request<PaginatedResponse<any>>(`/contacts?page=${page}&limit=${limit}`, {
+    return request<PaginatedResponse<ContactRecord>>(`/contacts?page=${page}&limit=${limit}`, {
+      token,
+    })
+  },
+  createContact(token: string, payload: ContactPayload) {
+    return request<ContactRecord>('/contacts', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateContact(token: string, contactId: string, payload: Partial<ContactPayload>) {
+    return request<ContactRecord>(`/contacts/${contactId}`, {
+      method: 'PUT',
+      body: payload,
       token,
     })
   },
