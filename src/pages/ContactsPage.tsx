@@ -24,6 +24,8 @@ type ContactViewModel = {
   notes?: string | null
   owner: string
   phone?: string | null
+  portalEnabled?: boolean
+  portalLastLoginAt?: string | null
   stage: string
   type?: string
   value: string
@@ -43,6 +45,8 @@ const mapContactRecord = (contact: ContactRecord): ContactViewModel => ({
     contact.owner?.email ||
     'Owner',
   phone: contact.phone,
+  portalEnabled: contact.portalEnabled,
+  portalLastLoginAt: contact.portalLastLoginAt,
   stage: contact.status || 'active',
   type: contact.type,
   value: contact.jobTitle || 'Contact',
@@ -99,6 +103,9 @@ export function ContactsPage() {
   const [note, setNote] = useState('')
   const [noteError, setNoteError] = useState<string | null>(null)
   const [isSavingNote, setIsSavingNote] = useState(false)
+  const [portalPassword, setPortalPassword] = useState<string | null>(null)
+  const [portalStatusError, setPortalStatusError] = useState<string | null>(null)
+  const [isUpdatingPortalAccess, setIsUpdatingPortalAccess] = useState(false)
 
   const { data, error, loading } = useApiQuery(
     Boolean(token),
@@ -179,6 +186,8 @@ export function ContactsPage() {
     setEditorMode('create')
     setEditingContactId(null)
     setForm(createEmptyContactForm())
+    setPortalPassword(null)
+    setPortalStatusError(null)
     setSaveError(null)
     setIsEditorOpen(true)
   }
@@ -192,6 +201,8 @@ export function ContactsPage() {
     setEditorMode('edit')
     setEditingContactId(contactId)
     setForm(toFormState(source))
+    setPortalPassword(null)
+    setPortalStatusError(null)
     setSaveError(null)
     setIsEditorOpen(true)
   }
@@ -259,6 +270,50 @@ export function ContactsPage() {
       notifyError(message, 'Note save failed')
     } finally {
       setIsSavingNote(false)
+    }
+  }
+
+  const handleEnablePortalAccess = async () => {
+    if (!token || !selectedContactId) {
+      return
+    }
+
+    setIsUpdatingPortalAccess(true)
+    setPortalStatusError(null)
+
+    try {
+      const result = await api.enablePortalAccess(token, selectedContactId)
+      setPortalPassword(result.temporaryPassword)
+      setRefreshKey((current) => current + 1)
+      notifySuccess('Portal access is active for this contact.', 'Portal access enabled')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not enable portal access'
+      setPortalStatusError(message)
+      notifyError(message, 'Portal access failed')
+    } finally {
+      setIsUpdatingPortalAccess(false)
+    }
+  }
+
+  const handleDisablePortalAccess = async () => {
+    if (!token || !selectedContactId) {
+      return
+    }
+
+    setIsUpdatingPortalAccess(true)
+    setPortalStatusError(null)
+
+    try {
+      await api.disablePortalAccess(token, selectedContactId)
+      setPortalPassword(null)
+      setRefreshKey((current) => current + 1)
+      notifySuccess('Portal access has been revoked for this contact.', 'Portal access disabled')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not disable portal access'
+      setPortalStatusError(message)
+      notifyError(message, 'Portal access failed')
+    } finally {
+      setIsUpdatingPortalAccess(false)
     }
   }
 
@@ -395,6 +450,56 @@ export function ContactsPage() {
                   <span className="data-label">Notes</span>
                   <p>{selectedContact.notes || 'No notes yet for this contact.'}</p>
                 </div>
+
+                {!selectedContact.id.startsWith('mock-') ? (
+                  <div className="detail-note portal-access-panel">
+                    <span className="data-label">Portal access</span>
+                    <p>
+                      {selectedContact.portalEnabled
+                        ? 'This contact can log into the client portal to review delivery, billing, and support.'
+                        : 'Enable portal access to let this contact use the client workspace.'}
+                    </p>
+                    <div className="portal-access-meta">
+                      <span className={selectedContact.portalEnabled ? 'status-chip healthy' : 'status-chip watching'}>
+                        {selectedContact.portalEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                      <span>
+                        Last sign-in:{' '}
+                        {selectedContact.portalLastLoginAt
+                          ? new Date(selectedContact.portalLastLoginAt).toLocaleString()
+                          : 'No client logins yet'}
+                      </span>
+                    </div>
+                    {portalPassword ? (
+                      <div className="portal-password-card">
+                        <span className="data-label">Temporary password</span>
+                        <strong>{portalPassword}</strong>
+                        <p>Share this once with the client, then direct them to `#/portal`.</p>
+                      </div>
+                    ) : null}
+                    {portalStatusError ? <p className="form-error">{portalStatusError}</p> : null}
+                    <div className="inline-actions">
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={isUpdatingPortalAccess}
+                        onClick={handleEnablePortalAccess}
+                      >
+                        {selectedContact.portalEnabled ? 'Reset portal password' : 'Enable portal access'}
+                      </button>
+                      {selectedContact.portalEnabled ? (
+                        <button
+                          type="button"
+                          className="ghost-button"
+                          disabled={isUpdatingPortalAccess}
+                          onClick={handleDisablePortalAccess}
+                        >
+                          Disable access
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <EmptyState

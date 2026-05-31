@@ -1,5 +1,6 @@
 const DEFAULT_API_BASE_URL = '/api/v1'
 const TOKEN_STORAGE_KEY = 'project-kline-crm-token'
+const PORTAL_TOKEN_STORAGE_KEY = 'project-kline-crm-portal-token'
 
 type RequestOptions = {
   body?: unknown
@@ -198,6 +199,8 @@ export type ContactRecord = {
   zipCode?: string | null
   country?: string | null
   notes?: string | null
+  portalEnabled?: boolean
+  portalLastLoginAt?: string | null
   ownerId?: string
   owner?: {
     id?: string
@@ -672,6 +675,47 @@ export type FileRecord = {
   updatedAt?: string
 }
 
+export type PortalProfile = {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string | null
+  company?: string | null
+  companyId?: string | null
+  jobTitle?: string | null
+  portalEnabled?: boolean
+  portalLastLoginAt?: string | null
+  companyRecord?: {
+    id: string
+    name: string
+    industry?: string | null
+    website?: string | null
+  } | null
+}
+
+export type PortalLoginResponse = {
+  token: string
+  contact: PortalProfile
+}
+
+export type PortalDashboardResponse = {
+  contact: PortalProfile
+  summary: {
+    tasks: number
+    files: number
+    contracts: number
+    invoices: number
+    tickets: number
+    onboarding: number
+  }
+  recent: {
+    tasks: TaskRecord[]
+    files: FileRecord[]
+    invoices: InvoiceRecord[]
+  }
+}
+
 export type NotificationRecord = {
   id: string
   userId: string
@@ -768,6 +812,18 @@ export const tokenStorage = {
   },
 }
 
+export const portalTokenStorage = {
+  get() {
+    return window.localStorage.getItem(PORTAL_TOKEN_STORAGE_KEY)
+  },
+  set(token: string) {
+    window.localStorage.setItem(PORTAL_TOKEN_STORAGE_KEY, token)
+  },
+  clear() {
+    window.localStorage.removeItem(PORTAL_TOKEN_STORAGE_KEY)
+  },
+}
+
 export const api = {
   baseUrl: apiBaseUrl,
   login(email: string, password: string) {
@@ -778,6 +834,74 @@ export const api = {
   },
   getProfile(token: string) {
     return request<CurrentUser>('/auth/me', { token })
+  },
+  portalLogin(email: string, password: string) {
+    return request<PortalLoginResponse>('/portal/auth/login', {
+      method: 'POST',
+      body: { email, password },
+    })
+  },
+  getPortalProfile(token: string) {
+    return request<PortalProfile>('/portal/auth/me', { token })
+  },
+  getPortalDashboard(token: string) {
+    return request<PortalDashboardResponse>('/portal/dashboard', { token })
+  },
+  getPortalTasks(token: string) {
+    return request<TaskRecord[]>('/portal/tasks', { token })
+  },
+  getPortalFiles(token: string) {
+    return request<FileRecord[]>('/portal/files', { token })
+  },
+  getPortalContracts(token: string) {
+    return request<ContractRecord[]>('/portal/contracts', { token })
+  },
+  getPortalInvoices(token: string) {
+    return request<InvoiceRecord[]>('/portal/invoices', { token })
+  },
+  getPortalTickets(token: string) {
+    return request<TicketRecord[]>('/portal/tickets', { token })
+  },
+  getPortalOnboarding(token: string) {
+    return request<OnboardingWorkflowRecord[]>('/portal/onboarding', { token })
+  },
+  async downloadPortalFile(token: string, fileId: string) {
+    const response = await fetch(`${apiBaseUrl}/portal/files/${fileId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`)
+    }
+
+    const blob = await response.blob()
+    const disposition = response.headers.get('content-disposition') || ''
+    const matchedName = disposition.match(/filename="?([^"]+)"?/)
+    return {
+      blob,
+      fileName: matchedName?.[1] || `portal-file-${fileId}`,
+    }
+  },
+  enablePortalAccess(token: string, contactId: string, payload: { password?: string } = {}) {
+    return request<{ contactId: string; portalEnabled: boolean; temporaryPassword: string }>(
+      `/portal/access/${contactId}/enable`,
+      {
+        method: 'POST',
+        body: payload,
+        token,
+      },
+    )
+  },
+  disablePortalAccess(token: string, contactId: string) {
+    return request<{ contactId: string; portalEnabled: boolean }>(
+      `/portal/access/${contactId}/disable`,
+      {
+        method: 'POST',
+        token,
+      },
+    )
   },
   getWorkspaceSettings(token: string) {
     return request<WorkspaceSettingsRecord>('/workspace-settings', { token })

@@ -1660,6 +1660,112 @@
   gap: 0.7rem;
 }
 
+.form-error {
+  color: #d9485f;
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.portal-shell {
+  min-height: 100vh;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.04), transparent 28%),
+    var(--bg-base);
+}
+
+.portal-shell-authenticated {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.portal-auth-card,
+.portal-hero-card {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.portal-auth-card {
+  display: grid;
+  gap: 1rem;
+  padding: 2rem;
+  border-radius: calc(var(--radius-card) + 6px);
+  border: 1px solid var(--border-color);
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.92));
+  box-shadow: var(--shadow-soft);
+}
+
+.portal-copy {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.portal-auth-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.portal-auth-form label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.portal-auth-form input {
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink-strong);
+  padding: 0.95rem 1rem;
+}
+
+.portal-header {
+  display: grid;
+  gap: 1rem;
+}
+
+.portal-tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.portal-summary-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.portal-access-panel {
+  gap: 0.9rem;
+}
+
+.portal-access-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+.portal-password-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.portal-password-card p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
 @media (max-width: 1200px) {
   .metric-grid,
   .pipeline-board,
@@ -1671,7 +1777,8 @@
   .revenue-board,
   .mini-stat-grid,
   .search-results-grid,
-  .appearance-preview {
+  .appearance-preview,
+  .portal-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1716,6 +1823,10 @@
     padding: 1rem;
   }
 
+  .portal-shell {
+    padding: 1rem;
+  }
+
   .metric-grid,
   .pipeline-board,
   .operations-grid,
@@ -1729,7 +1840,8 @@
   .search-results-grid,
   .search-command-grid,
   .appearance-grid,
-  .appearance-preview {
+  .appearance-preview,
+  .portal-summary-grid {
     grid-template-columns: 1fr;
   }
 

@@ -18,6 +18,7 @@ import { SearchPage } from './pages/SearchPage'
 import { TeamPage } from './pages/TeamPage'
 import { EmailPage } from './pages/EmailPage'
 import { SetupPage } from './pages/SetupPage'
+import { PortalPage } from './pages/PortalPage'
 import { useApiQuery } from './hooks/useApiQuery'
 import { api } from './lib/api'
 
@@ -37,6 +38,10 @@ function App() {
 
   const activeView = pageTitleMap[route] ? route : 'dashboard'
   const activeLabel = pageTitleMap[activeView] ?? 'Dashboard'
+
+  if (route === 'portal') {
+    return <PortalPage />
+  }
 
   const renderPage = () => {
     switch (activeView) {
