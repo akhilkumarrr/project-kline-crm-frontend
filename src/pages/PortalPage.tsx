@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { DynamicIntakeForm, extractSubmitterPayload } from '../components/forms/DynamicIntakeForm'
 import { LoadState } from '../components/LoadState'
 import { useApiQuery } from '../hooks/useApiQuery'
 import { usePortalAuth } from '../hooks/usePortalAuth'
 import { api } from '../lib/api'
 import { buildHashRoute, readHashParam } from '../lib/navigation'
 
-type PortalTab = 'overview' | 'tasks' | 'files' | 'contracts' | 'invoices' | 'onboarding' | 'tickets'
+type PortalTab = 'overview' | 'tasks' | 'files' | 'contracts' | 'invoices' | 'onboarding' | 'tickets' | 'forms'
 
 const portalTabs: Array<{ id: PortalTab; label: string }> = [
   { id: 'overview', label: 'Overview' },
@@ -15,6 +16,7 @@ const portalTabs: Array<{ id: PortalTab; label: string }> = [
   { id: 'invoices', label: 'Invoices' },
   { id: 'onboarding', label: 'Onboarding' },
   { id: 'tickets', label: 'Support' },
+  { id: 'forms', label: 'Forms' },
 ]
 
 const readPortalTab = (): PortalTab => {
@@ -55,6 +57,11 @@ export function PortalPage() {
   })
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null)
+  const [portalFormAnswers, setPortalFormAnswers] = useState<Record<string, unknown>>({})
+  const [portalFormSubmitError, setPortalFormSubmitError] = useState<string | null>(null)
+  const [portalFormSuccessMessage, setPortalFormSuccessMessage] = useState<string | null>(null)
+  const [selectedPortalFormSlug, setSelectedPortalFormSlug] = useState<string | null>(null)
+  const [isSubmittingPortalForm, setIsSubmittingPortalForm] = useState(false)
 
   useEffect(() => {
     const syncTab = () => setTab(readPortalTab())
@@ -96,6 +103,16 @@ export function PortalPage() {
     () => api.getPortalTickets(auth.token!),
     [auth.token, tab],
   )
+  const portalFormsQuery = useApiQuery(
+    tab === 'forms' && Boolean(auth.token),
+    () => api.getPortalForms(auth.token!),
+    [auth.token, tab],
+  )
+  const portalFormDetailQuery = useApiQuery(
+    tab === 'forms' && Boolean(auth.token) && Boolean(selectedPortalFormSlug),
+    () => api.getPortalForm(auth.token!, selectedPortalFormSlug!),
+    [auth.token, tab, selectedPortalFormSlug],
+  )
 
   const greetingName = useMemo(() => {
     if (!auth.user) {
@@ -133,6 +150,40 @@ export function PortalPage() {
       downloadBlob(result.blob, result.fileName)
     } finally {
       setDownloadingFileId(null)
+    }
+  }
+
+  useEffect(() => {
+    if (tab !== 'forms') {
+      return
+    }
+
+    const firstSlug = portalFormsQuery.data?.[0]?.slug
+    if (!selectedPortalFormSlug && firstSlug) {
+      setSelectedPortalFormSlug(firstSlug)
+    }
+  }, [portalFormsQuery.data, selectedPortalFormSlug, tab])
+
+  const handlePortalFormSubmit = async () => {
+    if (!auth.token || !selectedPortalFormSlug || !portalFormDetailQuery.data) {
+      return
+    }
+
+    setIsSubmittingPortalForm(true)
+    setPortalFormSubmitError(null)
+
+    try {
+      const result = await api.submitPortalForm(
+        auth.token,
+        selectedPortalFormSlug,
+        extractSubmitterPayload(portalFormDetailQuery.data.fields, portalFormAnswers),
+      )
+      setPortalFormSuccessMessage(result.successMessage)
+      setPortalFormAnswers({})
+    } catch (error) {
+      setPortalFormSubmitError(error instanceof Error ? error.message : 'Could not submit form')
+    } finally {
+      setIsSubmittingPortalForm(false)
     }
   }
 
@@ -311,6 +362,69 @@ export function PortalPage() {
               ))}
             </div>
           </article>
+        )
+      case 'forms':
+        return (
+          <section className="page-grid">
+            <div className="main-column">
+              <article className="surface-card">
+                <div className="card-heading"><h3>Available forms</h3></div>
+                <LoadState loading={portalFormsQuery.loading} error={portalFormsQuery.error} title="Loading forms" />
+                <div className="list-shell">
+                  {(portalFormsQuery.data || []).map((formRecord) => (
+                    <button
+                      key={formRecord.id}
+                      type="button"
+                      className={selectedPortalFormSlug === formRecord.slug ? 'list-row active' : 'list-row'}
+                      onClick={() => {
+                        setSelectedPortalFormSlug(formRecord.slug)
+                        setPortalFormSuccessMessage(null)
+                        setPortalFormSubmitError(null)
+                        setPortalFormAnswers({})
+                      }}
+                    >
+                      <div>
+                        <strong>{formRecord.name}</strong>
+                        <p>{formRecord.title}</p>
+                      </div>
+                      <span className="status-pill neutral">{formRecord.category?.replace(/_/g, ' ')}</span>
+                    </button>
+                  ))}
+                </div>
+              </article>
+            </div>
+            <div className="side-column">
+              <article className="surface-card">
+                <div className="card-heading">
+                  <div>
+                    <p className="eyebrow">Selected form</p>
+                    <h3>{portalFormDetailQuery.data?.name || 'Portal form'}</h3>
+                  </div>
+                </div>
+                <LoadState loading={portalFormDetailQuery.loading} error={portalFormDetailQuery.error} title="Loading form" />
+                {portalFormDetailQuery.data ? (
+                  <>
+                    <p className="portal-copy">{portalFormDetailQuery.data.introText || portalFormDetailQuery.data.description}</p>
+                    {portalFormSuccessMessage ? (
+                      <div className="portal-password-card">
+                        <span className="data-label">Submitted</span>
+                        <strong>{portalFormSuccessMessage}</strong>
+                      </div>
+                    ) : (
+                      <DynamicIntakeForm
+                        answers={portalFormAnswers}
+                        form={portalFormDetailQuery.data}
+                        isSubmitting={isSubmittingPortalForm}
+                        onChange={(key, value) => setPortalFormAnswers((current) => ({ ...current, [key]: value }))}
+                        onSubmit={handlePortalFormSubmit}
+                        submitError={portalFormSubmitError}
+                      />
+                    )}
+                  </>
+                ) : null}
+              </article>
+            </div>
+          </section>
         )
       case 'overview':
       default:

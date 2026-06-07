@@ -273,6 +273,7 @@ export function WorkspaceTemplateProvider({ children }: WorkspaceTemplateProvide
         calendar: labels.appointmentPlural,
         companies: 'Companies',
         contacts: labels.contactPlural,
+        forms: 'Forms',
         onboarding: labels.onboardingPlural,
         pipeline: labels.pipelinePlural,
         setup: 'Get Started',

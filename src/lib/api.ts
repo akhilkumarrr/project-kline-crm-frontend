@@ -675,6 +675,109 @@ export type FileRecord = {
   updatedAt?: string
 }
 
+export type FormFieldOption = {
+  label: string
+  value: string
+}
+
+export type FormFieldConfig = {
+  id: string
+  key: string
+  label: string
+  type:
+    | 'short_text'
+    | 'long_text'
+    | 'email'
+    | 'phone'
+    | 'select'
+    | 'multi_select'
+    | 'checkbox'
+    | 'date'
+    | 'number'
+  required: boolean
+  placeholder?: string
+  helpText?: string
+  options?: FormFieldOption[]
+}
+
+export type FormTemplateRecord = {
+  id: string
+  name: string
+  slug: string
+  description?: string | null
+  category?: 'general' | 'lead_intake' | 'support_request' | 'onboarding'
+  visibility?: 'public' | 'portal' | 'internal'
+  status?: 'draft' | 'published' | 'archived'
+  title: string
+  introText?: string | null
+  submitButtonLabel?: string
+  successMessage?: string
+  fields: FormFieldConfig[]
+  settings?: Record<string, unknown> | null
+  owner?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type FormTemplatePayload = {
+  name: string
+  slug?: string
+  description?: string
+  category?: 'general' | 'lead_intake' | 'support_request' | 'onboarding'
+  visibility?: 'public' | 'portal' | 'internal'
+  status?: 'draft' | 'published' | 'archived'
+  title: string
+  introText?: string
+  submitButtonLabel?: string
+  successMessage?: string
+  fields: FormFieldConfig[]
+  settings?: Record<string, unknown>
+}
+
+export type FormSubmissionRecord = {
+  id: string
+  formId: string
+  form?: FormTemplateRecord | null
+  contactId?: string | null
+  contact?: ContactRecord | null
+  companyId?: string | null
+  company?: CompanyRecord | null
+  createdLeadId?: string | null
+  createdTicketId?: string | null
+  source?: 'public' | 'portal' | 'internal'
+  status?: 'new' | 'reviewed' | 'converted' | 'archived'
+  submitterName?: string | null
+  submitterEmail?: string | null
+  submitterCompany?: string | null
+  submitterPhone?: string | null
+  payload: Record<string, unknown>
+  summary?: string | null
+  metadata?: Record<string, unknown> | null
+  submittedAt?: string
+  updatedAt?: string
+}
+
+export type SubmitFormPayload = {
+  payload: Record<string, unknown>
+  submitterName?: string
+  submitterEmail?: string
+  submitterCompany?: string
+  submitterPhone?: string
+}
+
+export type SubmitFormResult = {
+  id: string
+  successMessage: string
+  status: string
+  createdLeadId?: string | null
+  createdTicketId?: string | null
+}
+
 export type PortalProfile = {
   id: string
   firstName: string
@@ -865,6 +968,19 @@ export const api = {
   getPortalOnboarding(token: string) {
     return request<OnboardingWorkflowRecord[]>('/portal/onboarding', { token })
   },
+  getPortalForms(token: string) {
+    return request<FormTemplateRecord[]>('/portal/forms', { token })
+  },
+  getPortalForm(token: string, slug: string) {
+    return request<FormTemplateRecord>(`/portal/forms/${slug}`, { token })
+  },
+  submitPortalForm(token: string, slug: string, payload: SubmitFormPayload) {
+    return request<SubmitFormResult>(`/portal/forms/${slug}/submit`, {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
   async downloadPortalFile(token: string, fileId: string) {
     const response = await fetch(`${apiBaseUrl}/portal/files/${fileId}`, {
       headers: {
@@ -958,6 +1074,52 @@ export const api = {
   },
   getCompanyTimeline(token: string, companyId: string) {
     return request<ActivityRecord[]>(`/companies/${companyId}/timeline`, { token })
+  },
+  getForms(token: string, page = 1, limit = 100) {
+    return request<PaginatedResponse<FormTemplateRecord>>(
+      `/forms${buildQuery({ page, limit })}`,
+      { token },
+    )
+  },
+  getForm(token: string, formId: string) {
+    return request<FormTemplateRecord>(`/forms/${formId}`, { token })
+  },
+  createForm(token: string, payload: FormTemplatePayload) {
+    return request<FormTemplateRecord>('/forms', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateForm(token: string, formId: string, payload: Partial<FormTemplatePayload>) {
+    return request<FormTemplateRecord>(`/forms/${formId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  deleteForm(token: string, formId: string) {
+    return request<{ message: string }>(`/forms/${formId}`, {
+      method: 'DELETE',
+      token,
+    })
+  },
+  getFormSubmissions(token: string, formId: string) {
+    return request<PaginatedResponse<FormSubmissionRecord>>(`/forms/${formId}/submissions`, {
+      token,
+    })
+  },
+  getFormSubmission(token: string, submissionId: string) {
+    return request<FormSubmissionRecord>(`/form-submissions/${submissionId}`, { token })
+  },
+  getPublicForm(slug: string) {
+    return request<FormTemplateRecord>(`/intake/forms/${slug}`)
+  },
+  submitPublicForm(slug: string, payload: SubmitFormPayload) {
+    return request<SubmitFormResult>(`/intake/forms/${slug}/submit`, {
+      method: 'POST',
+      body: payload,
+    })
   },
   getContactFiles(token: string, contactId: string) {
     return request<FileRecord[]>(`/contacts/${contactId}/files`, { token })

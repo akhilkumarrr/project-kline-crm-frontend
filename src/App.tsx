@@ -19,6 +19,8 @@ import { TeamPage } from './pages/TeamPage'
 import { EmailPage } from './pages/EmailPage'
 import { SetupPage } from './pages/SetupPage'
 import { PortalPage } from './pages/PortalPage'
+import { FormsPage } from './pages/FormsPage'
+import { IntakePage } from './pages/IntakePage'
 import { useApiQuery } from './hooks/useApiQuery'
 import { api } from './lib/api'
 
@@ -43,12 +45,18 @@ function App() {
     return <PortalPage />
   }
 
+  if (route === 'intake') {
+    return <IntakePage />
+  }
+
   const renderPage = () => {
     switch (activeView) {
       case 'contacts':
         return <ContactsPage />
       case 'companies':
         return <CompaniesPage />
+      case 'forms':
+        return <FormsPage />
       case 'pipeline':
         return <PipelinePage />
       case 'quotes':
@@ -62,9 +70,9 @@ function App() {
         return <NotificationsPage />
       case 'tasks':
       case 'calendar':
-      case 'invoices':
       case 'onboarding':
       case 'tickets':
+      case 'invoices':
         return <OperationsPage activeView={activeView} />
       case 'analytics':
         return <AnalyticsPage />

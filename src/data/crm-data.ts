@@ -11,7 +11,7 @@ export type SidebarSection = {
 }
 
 type SidebarLabelOverrides = Partial<
-  Record<'calendar' | 'companies' | 'contacts' | 'onboarding' | 'pipeline' | 'setup' | 'tickets', string>
+  Record<'calendar' | 'companies' | 'contacts' | 'forms' | 'onboarding' | 'pipeline' | 'setup' | 'tickets', string>
 >
 
 export const getSidebarSections = (labels: SidebarLabelOverrides = {}): SidebarSection[] => [
@@ -31,6 +31,7 @@ export const getSidebarSections = (labels: SidebarLabelOverrides = {}): SidebarS
     title: 'Operations',
     items: [
       { id: 'calendar', label: labels.calendar || 'Appointments', glyph: '◷' },
+      { id: 'forms', label: labels.forms || 'Forms', glyph: '◫', count: '4' },
       { id: 'invoices', label: 'Invoices', glyph: '◪', count: '7' },
       { id: 'onboarding', label: labels.onboarding || 'Onboarding', glyph: '◩', count: '5' },
       { id: 'tickets', label: labels.tickets || 'Support', glyph: '◬', count: '9' },

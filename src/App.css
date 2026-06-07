@@ -1766,6 +1766,61 @@
   color: var(--ink-soft);
 }
 
+.drawer-panel-wide {
+  width: min(980px, calc(100vw - 2rem));
+}
+
+.detail-copy {
+  margin: 0 0 1rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.builder-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.builder-field-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.builder-field-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.checkbox-field input {
+  width: 18px;
+  height: 18px;
+}
+
+.intake-shell {
+  display: grid;
+  place-items: center;
+}
+
+.intake-card {
+  width: min(840px, 100%);
+}
+
+.intake-form .field small {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
 @media (max-width: 1200px) {
   .metric-grid,
   .pipeline-board,
