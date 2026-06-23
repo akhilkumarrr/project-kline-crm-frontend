@@ -31,6 +31,7 @@ export const getSidebarSections = (labels: SidebarLabelOverrides = {}): SidebarS
     title: 'Operations',
     items: [
       { id: 'calendar', label: labels.calendar || 'Appointments', glyph: '◷' },
+      { id: 'messages', label: 'Messages', glyph: '◱', count: 'new' },
       { id: 'forms', label: labels.forms || 'Forms', glyph: '◫', count: '4' },
       { id: 'invoices', label: 'Invoices', glyph: '◪', count: '7' },
       { id: 'onboarding', label: labels.onboarding || 'Onboarding', glyph: '◩', count: '5' },

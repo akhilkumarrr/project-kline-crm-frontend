@@ -831,6 +831,77 @@ export type NotificationRecord = {
   createdAt?: string
 }
 
+export type ConversationMessageRecord = {
+  id: string
+  conversationId: string
+  authorType: 'user' | 'contact' | 'system'
+  authorUserId?: string | null
+  authorContactId?: string | null
+  authorUser?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  authorContact?: ContactRecord | null
+  body: string
+  visibility?: 'public' | 'internal'
+  readByUserAt?: string | null
+  readByContactAt?: string | null
+  metadata?: Record<string, unknown> | null
+  createdAt?: string
+}
+
+export type ConversationRecord = {
+  id: string
+  subject: string
+  status?: 'open' | 'waiting_internal' | 'waiting_client' | 'closed'
+  channel?: 'portal' | 'email' | 'internal'
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  contactId?: string | null
+  contact?: ContactRecord | null
+  companyId?: string | null
+  company?: CompanyRecord | null
+  ticketId?: string | null
+  ticket?: TicketRecord | null
+  ownerId?: string
+  assignedTo?: string | null
+  assignedUser?: {
+    id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+  } | null
+  messages?: ConversationMessageRecord[]
+  lastMessageAt?: string | null
+  metadata?: Record<string, unknown> | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type ConversationPayload = {
+  subject: string
+  channel?: 'portal' | 'email' | 'internal'
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  status?: 'open' | 'waiting_internal' | 'waiting_client' | 'closed'
+  contactId?: string
+  companyId?: string
+  ticketId?: string
+  assignedTo?: string
+  initialMessage?: string
+}
+
+export type ConversationMessagePayload = {
+  body: string
+  visibility?: 'public' | 'internal'
+}
+
+export type PortalConversationPayload = {
+  subject: string
+  message: string
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+}
+
 export type AddNotePayload = {
   note: string
   metadata?: Record<string, unknown>
@@ -971,6 +1042,32 @@ export const api = {
   getPortalForms(token: string) {
     return request<FormTemplateRecord[]>('/portal/forms', { token })
   },
+  getPortalConversations(token: string) {
+    return request<ConversationRecord[]>('/portal/conversations', { token })
+  },
+  getPortalConversation(token: string, conversationId: string) {
+    return request<ConversationRecord>(`/portal/conversations/${conversationId}`, { token })
+  },
+  createPortalConversation(token: string, payload: PortalConversationPayload) {
+    return request<ConversationRecord>('/portal/conversations', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  sendPortalConversationMessage(token: string, conversationId: string, payload: ConversationMessagePayload) {
+    return request<ConversationRecord>(`/portal/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  markPortalConversationRead(token: string, conversationId: string) {
+    return request<{ updated: number }>(`/portal/conversations/${conversationId}/read`, {
+      method: 'PUT',
+      token,
+    })
+  },
   getPortalForm(token: string, slug: string) {
     return request<FormTemplateRecord>(`/portal/forms/${slug}`, { token })
   },
@@ -1074,6 +1171,48 @@ export const api = {
   },
   getCompanyTimeline(token: string, companyId: string) {
     return request<ActivityRecord[]>(`/companies/${companyId}/timeline`, { token })
+  },
+  getCompanyConversations(token: string, companyId: string) {
+    return request<ConversationRecord[]>(`/companies/${companyId}/conversations`, { token })
+  },
+  getContactConversations(token: string, contactId: string) {
+    return request<ConversationRecord[]>(`/contacts/${contactId}/conversations`, { token })
+  },
+  getConversations(
+    token: string,
+    filters: Record<string, string | number | boolean | undefined | null> = {},
+  ) {
+    return request<ConversationRecord[]>(`/conversations${buildQuery(filters)}`, { token })
+  },
+  getConversation(token: string, conversationId: string) {
+    return request<ConversationRecord>(`/conversations/${conversationId}`, { token })
+  },
+  createConversation(token: string, payload: ConversationPayload) {
+    return request<ConversationRecord>('/conversations', {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  updateConversation(token: string, conversationId: string, payload: Partial<ConversationPayload>) {
+    return request<ConversationRecord>(`/conversations/${conversationId}`, {
+      method: 'PUT',
+      body: payload,
+      token,
+    })
+  },
+  sendConversationMessage(token: string, conversationId: string, payload: ConversationMessagePayload) {
+    return request<ConversationRecord>(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: payload,
+      token,
+    })
+  },
+  markConversationRead(token: string, conversationId: string) {
+    return request<{ updated: number }>(`/conversations/${conversationId}/read`, {
+      method: 'PUT',
+      token,
+    })
   },
   getForms(token: string, page = 1, limit = 100) {
     return request<PaginatedResponse<FormTemplateRecord>>(

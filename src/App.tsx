@@ -21,6 +21,7 @@ import { SetupPage } from './pages/SetupPage'
 import { PortalPage } from './pages/PortalPage'
 import { FormsPage } from './pages/FormsPage'
 import { IntakePage } from './pages/IntakePage'
+import { MessagesPage } from './pages/MessagesPage'
 import { useApiQuery } from './hooks/useApiQuery'
 import { api } from './lib/api'
 
@@ -57,6 +58,8 @@ function App() {
         return <CompaniesPage />
       case 'forms':
         return <FormsPage />
+      case 'messages':
+        return <MessagesPage />
       case 'pipeline':
         return <PipelinePage />
       case 'quotes':

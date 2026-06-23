@@ -6,10 +6,11 @@ import { usePortalAuth } from '../hooks/usePortalAuth'
 import { api } from '../lib/api'
 import { buildHashRoute, readHashParam } from '../lib/navigation'
 
-type PortalTab = 'overview' | 'tasks' | 'files' | 'contracts' | 'invoices' | 'onboarding' | 'tickets' | 'forms'
+type PortalTab = 'overview' | 'messages' | 'tasks' | 'files' | 'contracts' | 'invoices' | 'onboarding' | 'tickets' | 'forms'
 
 const portalTabs: Array<{ id: PortalTab; label: string }> = [
   { id: 'overview', label: 'Overview' },
+  { id: 'messages', label: 'Messages' },
   { id: 'tasks', label: 'Tasks' },
   { id: 'files', label: 'Files' },
   { id: 'contracts', label: 'Contracts' },
@@ -62,6 +63,15 @@ export function PortalPage() {
   const [portalFormSuccessMessage, setPortalFormSuccessMessage] = useState<string | null>(null)
   const [selectedPortalFormSlug, setSelectedPortalFormSlug] = useState<string | null>(null)
   const [isSubmittingPortalForm, setIsSubmittingPortalForm] = useState(false)
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const [conversationReply, setConversationReply] = useState('')
+  const [conversationError, setConversationError] = useState<string | null>(null)
+  const [isSendingConversation, setIsSendingConversation] = useState(false)
+  const [conversationForm, setConversationForm] = useState({
+    subject: '',
+    message: '',
+    priority: 'medium',
+  })
 
   useEffect(() => {
     const syncTab = () => setTab(readPortalTab())
@@ -107,6 +117,20 @@ export function PortalPage() {
     tab === 'forms' && Boolean(auth.token),
     () => api.getPortalForms(auth.token!),
     [auth.token, tab],
+  )
+  const portalConversationsQuery = useApiQuery(
+    tab === 'messages' && Boolean(auth.token),
+    () => api.getPortalConversations(auth.token!),
+    [auth.token, tab, isSendingConversation],
+  )
+  const selectedConversation =
+    (portalConversationsQuery.data || []).find((conversation) => conversation.id === selectedConversationId) ||
+    portalConversationsQuery.data?.[0] ||
+    null
+  const portalConversationDetailQuery = useApiQuery(
+    tab === 'messages' && Boolean(auth.token) && Boolean(selectedConversation?.id),
+    () => api.getPortalConversation(auth.token!, selectedConversation!.id),
+    [auth.token, tab, selectedConversation?.id, isSendingConversation],
   )
   const portalFormDetailQuery = useApiQuery(
     tab === 'forms' && Boolean(auth.token) && Boolean(selectedPortalFormSlug),
@@ -164,6 +188,17 @@ export function PortalPage() {
     }
   }, [portalFormsQuery.data, selectedPortalFormSlug, tab])
 
+  useEffect(() => {
+    if (tab !== 'messages') {
+      return
+    }
+
+    const firstConversationId = portalConversationsQuery.data?.[0]?.id
+    if (!selectedConversationId && firstConversationId) {
+      setSelectedConversationId(firstConversationId)
+    }
+  }, [portalConversationsQuery.data, selectedConversationId, tab])
+
   const handlePortalFormSubmit = async () => {
     if (!auth.token || !selectedPortalFormSlug || !portalFormDetailQuery.data) {
       return
@@ -184,6 +219,50 @@ export function PortalPage() {
       setPortalFormSubmitError(error instanceof Error ? error.message : 'Could not submit form')
     } finally {
       setIsSubmittingPortalForm(false)
+    }
+  }
+
+  const handleCreateConversation = async () => {
+    if (!auth.token || !conversationForm.subject.trim() || !conversationForm.message.trim()) {
+      return
+    }
+
+    setIsSendingConversation(true)
+    setConversationError(null)
+
+    try {
+      const result = await api.createPortalConversation(auth.token, {
+        subject: conversationForm.subject.trim(),
+        message: conversationForm.message.trim(),
+        priority: conversationForm.priority as 'low' | 'medium' | 'high' | 'urgent',
+      })
+      setSelectedConversationId(result.id)
+      setConversationForm({ subject: '', message: '', priority: 'medium' })
+    } catch (error) {
+      setConversationError(error instanceof Error ? error.message : 'Could not create conversation')
+    } finally {
+      setIsSendingConversation(false)
+    }
+  }
+
+  const handleConversationReply = async () => {
+    const conversation = portalConversationDetailQuery.data || selectedConversation
+    if (!auth.token || !conversation?.id || !conversationReply.trim()) {
+      return
+    }
+
+    setIsSendingConversation(true)
+    setConversationError(null)
+
+    try {
+      await api.sendPortalConversationMessage(auth.token, conversation.id, {
+        body: conversationReply.trim(),
+      })
+      setConversationReply('')
+    } catch (error) {
+      setConversationError(error instanceof Error ? error.message : 'Could not send reply')
+    } finally {
+      setIsSendingConversation(false)
     }
   }
 
@@ -252,6 +331,144 @@ export function PortalPage() {
             </div>
           </article>
         )
+      case 'messages': {
+        const conversation = portalConversationDetailQuery.data || selectedConversation
+
+        return (
+          <section className="page-grid">
+            <div className="main-column">
+              <article className="surface-card">
+                <div className="card-heading">
+                  <div>
+                    <p className="eyebrow">Client messages</p>
+                    <h3>Shared conversations</h3>
+                  </div>
+                </div>
+                <LoadState
+                  loading={portalConversationsQuery.loading}
+                  error={portalConversationsQuery.error}
+                  title="Loading conversations"
+                />
+                <div className="list-shell">
+                  {(portalConversationsQuery.data || []).map((conversationRecord) => (
+                    <button
+                      key={conversationRecord.id}
+                      type="button"
+                      className={conversationRecord.id === conversation?.id ? 'list-row active' : 'list-row'}
+                      onClick={() => setSelectedConversationId(conversationRecord.id)}
+                    >
+                      <div>
+                        <strong>{conversationRecord.subject}</strong>
+                        <p>{conversationRecord.messages?.[0]?.body || 'Open the thread to view messages.'}</p>
+                      </div>
+                      <div className="list-row-actions">
+                        <span>{conversationRecord.status?.replace(/_/g, ' ') || 'open'}</span>
+                        <span>{conversationRecord.priority || 'medium'}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </article>
+
+              <article className="surface-card">
+                <div className="card-heading"><h3>Start a conversation</h3></div>
+                <div className="drawer-form">
+                  <label>
+                    Subject
+                    <input
+                      value={conversationForm.subject}
+                      onChange={(event) => setConversationForm((current) => ({ ...current, subject: event.target.value }))}
+                      placeholder="Question about my project"
+                    />
+                  </label>
+                  <label>
+                    Priority
+                    <select
+                      value={conversationForm.priority}
+                      onChange={(event) => setConversationForm((current) => ({ ...current, priority: event.target.value }))}
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </label>
+                  <label className="full-span">
+                    Message
+                    <textarea
+                      rows={4}
+                      value={conversationForm.message}
+                      onChange={(event) => setConversationForm((current) => ({ ...current, message: event.target.value }))}
+                      placeholder="Tell the team what you need."
+                    />
+                  </label>
+                  {conversationError ? <p className="form-error full-span">{conversationError}</p> : null}
+                  <div className="form-actions full-span">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={isSendingConversation || !conversationForm.subject.trim() || !conversationForm.message.trim()}
+                      onClick={handleCreateConversation}
+                    >
+                      {isSendingConversation ? 'Sending…' : 'Send message'}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div className="side-column">
+              <article className="surface-card sticky-panel">
+                <div className="card-heading">
+                  <div>
+                    <p className="eyebrow">Thread</p>
+                    <h3>{conversation?.subject || 'Select a conversation'}</h3>
+                  </div>
+                </div>
+                <LoadState
+                  loading={portalConversationDetailQuery.loading}
+                  error={portalConversationDetailQuery.error}
+                  title="Loading conversation"
+                />
+                {conversation ? (
+                  <>
+                    <div className="message-thread">
+                      {(conversation.messages || []).map((message) => (
+                        <article
+                          className={`message-bubble ${message.authorType === 'contact' ? 'client' : 'team'}`}
+                          key={message.id}
+                        >
+                          <span>{message.authorType === 'contact' ? 'You' : 'Team'}</span>
+                          <p>{message.body}</p>
+                          <small>{formatDate(message.createdAt)}</small>
+                        </article>
+                      ))}
+                    </div>
+                    <div className="message-composer">
+                      <textarea
+                        rows={5}
+                        value={conversationReply}
+                        onChange={(event) => setConversationReply(event.target.value)}
+                        placeholder="Reply to the team."
+                      />
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={isSendingConversation || !conversationReply.trim()}
+                        onClick={handleConversationReply}
+                      >
+                        {isSendingConversation ? 'Sending…' : 'Send reply'}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="portal-copy">Start a conversation and your service team will see it in their inbox.</p>
+                )}
+              </article>
+            </div>
+          </section>
+        )
+      }
       case 'files':
         return (
           <article className="surface-card">
